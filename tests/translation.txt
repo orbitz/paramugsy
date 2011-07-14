@@ -1,0 +1,86 @@
+ffff:
+s1_s=        101103 s1_e=      104924 s2_s=        3221 s2_e=      3925
+ah.r_start=  102529 ah.r_end=  102699 ah.q_start=  3222 ah.q_end=  3392
+r_start=     102529 r_end=     102699 q_start=     3222 q_end=     3392
+r_start'=      1426 r_end'=      1596 q_start'=       1 q_end'=     171
+
+
+(- 104924 101103)
+3821
+(- 3925 3221)
+704
+(- 102699 102529)
+170
+(- 3392 3222)
+170
+(- 102529 101103)
+1426
+(+ 1426 170)
+1596
+
+fffr:
+pe.seq_offset=170 pe.seq_length=1358
+s1_s=        101103 s1_e=      104924 s2_s=        3925 s2_e=      5283
+ah.r_start=  101104 ah.r_end=  102699 ah.q_start=  5350 ah.q_end=  3755
+r_start=     101274 r_end=     102632 q_start=     5283 q_end=     3925
+r_start'=       171 r_end'=      1529 q_start'=    1358 q_end'=       0
+
+(- 104924 101103)
+3821
+(- 5283 3925)
+1358
+(- 102699 101104)
+1595
+(- 5350 3755)
+1595
+(- 102632 101274)
+1358
+(- 5283 3925)
+1358
+(- 5360 3755)
+1605
+(+ 3755 170)
+3925
+(+ 3925 1358)
+5283
+
+ffrf:
+No evidence, this situation is not expected to exist
+
+frff:
+No Evidence
+
+rfff:
+No evidence
+
+ffrr:
+No evidence, this situation is not expected to exist though
+
+frfr:
+No evidence
+
+rffr:
+Believe to be correct
+
+pe.seq_offset=0 pe.seq_length=186
+s1_s=        14414 s1_e=      14227 s2_s=         3926 s2_e=      47431
+ah.r_start=  14228 ah.r_end=  14421 ah.q_start=  19189 ah.q_end=  18996
+r_start=     14228 r_end=     14414 q_start=     19182 q_end=     18996
+r_start'=        1 r_end'=      187 q_start'=    15070 q_end'=    15256
+
+
+(- 14227 186)
+14041
+(+ 14227 186)
+14413
+
+
+
+frrf:
+No evidence, this situation is not expected to exist
+
+rfrf:
+No evidence, this situation is not expected to exist
+
+rrff:
+No evidence, this situation is not expected to exist

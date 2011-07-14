@@ -1,0 +1,3 @@
+- It is very likely that there is an off-by-one error in the translation code
+
+- Do I need bin_headers? Can I specify the order I handle nucmers to get the same effect?
