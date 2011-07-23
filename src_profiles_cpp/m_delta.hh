@@ -4,16 +4,13 @@
 
 #include <m_option.hh>
 #include <m_range.hh>
+#include <m_profile.hh>
 
 namespace Para_mugsy {
   class Delta_stream_parse_error : public std::exception {};
 
 
-  /*
-   * These should become phantom types
-   */
-  typedef unsigned int M_seq_idx;
-  typedef unsigned int M_profile_idx;
+
   
   struct Delta_entry {
     std::pair<std::string> header_names;
