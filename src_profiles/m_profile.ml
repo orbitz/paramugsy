@@ -160,7 +160,7 @@ let seq_idx_of_profile_idx p pi =
   let rec seq_index gaps = function
     | gr::grs when M_range.get_end gr < pi ->
       seq_index (gaps + M_range.length gr) grs
-    | gr::grs when M_range.get_start gr < pi ->
+    | gr::grs when M_range.get_start gr <= pi ->
       None
     | _::_ | [] -> begin
       let offset = pi - gaps - 1 in

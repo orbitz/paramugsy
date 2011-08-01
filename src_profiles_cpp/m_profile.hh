@@ -1,9 +1,15 @@
+#ifndef M_PROFILE_HH
+#define M_PROFILE_HH
+
 #include <vector>
 #include <string>
 
+#include <m_option.hh>
 #include <m_range.hh>
+#include <m_profile.hh>
 
 namespace Para_mugsy {
+  class Profile_read_error : public std::exception {};
   class Seq_idx_out_of_range : public std::exception {};
   class Profile_idx_out_of_range : public std::exception {};
   class Seq_idx_invalid : public std::exception {};
@@ -12,37 +18,66 @@ namespace Para_mugsy {
   /*
    * These should become phantom types
    */
-  typedef unsigned int M_seq_idx;
-  typedef unsigned int M_profile_idx;
+  typedef long M_seq_idx;
+  typedef long M_profile_idx;
   
-  struct Profile {
-    std::pair<std::string, std::string> p_name;
+  struct M_profile {
+    M_profile(std::string const& p_major_name,
+              std::string const& p_minor_name,
+              std::string const& p_seq_name,
+              M_range<M_seq_idx> const& p_range,
+              long const& p_length,
+              long const& p_src_size,
+              std::vector<M_range<M_profile_idx> > const& p_gaps,
+              std::string const& p_seq_text) :
+      p_major_name(p_major_name),
+      p_minor_name(p_minor_name),
+      p_seq_name(p_seq_name),
+      p_range(p_range),
+      p_length(p_length),
+      p_src_size(p_src_size),
+      p_gaps(p_gaps),
+      p_seq_text(p_seq_text)
+    {}
+
+    M_profile(M_profile const& p) :
+      p_major_name(p.p_major_name),
+      p_minor_name(p.p_minor_name),
+      p_seq_name(p.p_seq_name),
+      p_range(p.p_range),
+      p_length(p.p_length),
+      p_src_size(p.p_src_size),
+      p_gaps(p.p_gaps),
+      p_seq_text(p.p_seq_text)
+    {}
+    
+    std::string p_major_name;
+    std::string p_minor_name;
     std::string p_seq_name;
     M_range<M_seq_idx> p_range;
-    unsigned in p_length;
+    long p_length;
+    long p_src_size;
     std::vector<M_range<M_profile_idx> > p_gaps;
-    unsigned int p_src_size;
     std::string p_seq_text;
 
-    Profile reverse();
+    M_profile reverse() const;
   };
 
-  Profile read_profile_file(bool lite, std::string const& fname);
+  M_profile read_profile_file(bool lite, std::string const& fname);
+  M_profile read_profile_file(std::string const& fname);
 
-  Profile read_profile_file(std::string const& fname) {
-    return read_profile_file(false, fname);
-  }
+  M_seq_idx inline seq_idx_of_int(long i) { return i; }
+  M_profile_idx inline profile_idx_of_int(long i) { return i; }
 
-  M_seq_idx seq_idx_of_int(unsigned int i) { return i; }
-  M_profile_idx profile_idx_of_int(unsigned int i) { return i; }
+  long inline int_of_seq_idx(M_seq_idx i) { return i; }
+  long inline int_of_profile_idx(M_profile_idx i) { return i; }
 
-  unsigned int int_of_seq_idx(M_seq_idx i) { return i; }
-  unsigned int int_of_profile_idx(M_profile_idx i) { return i; }
+  M_profile_idx profile_idx_of_seq_idx(M_profile const& p, M_seq_idx si);
+  M_option<M_seq_idx> seq_idx_of_profile_idx(M_profile const& p, M_profile_idx pi);
 
-  M_profile_idx profile_idx_of_seq_idx(Profile const& p, M_seq_idx si);
-  M_seq_idx seq_idx_of_profile_idx(Profile const& p, M_profile_idx pi);
-
-  Profile subset_profile(Profile const& p, M_profile_idx s, M_profile_idx e);
-  Profile subset_seq(Profile const& p, M_seq_idx s, M_seq_idx e);
+  M_profile subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e);
+  M_profile subset_seq(M_profile const& p, M_seq_idx s, M_seq_idx e);
   
 }
+
+#endif

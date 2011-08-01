@@ -1,3 +1,6 @@
+#ifndef M_RANGE_HH
+#define M_RANGE_HH
+
 #include <m_option.hh>
 #include <m_direction.hh>
 
@@ -7,15 +10,27 @@ namespace Para_mugsy {
   class M_range {
   public:
     M_range(T const& s, T const& e) : start(s), end(e) {}
+    M_range(M_range<T> const& range) : start(range.start), end(range.end) {}
 
-    T get_start() { return start; }
-    T get_end() { return end; }
+    M_range<T>& operator=(M_range<T> const& rhs) {
+      start = rhs.start;
+      end = rhs.end;
+      return *this;
+    }
     
-    unsigned long length() { return start <= end ? end - start : start - end; }
+    T get_start() const { return start; }
+    T get_end() const { return end; }
     
-    M_direction get_direction() { return start <= end ? D_FORWARD : D_REVERSE; }
+    unsigned long length() const { return (start <= end ? end - start : start - end) + 1; }
+    
+    M_direction get_direction() const { return start <= end ? D_FORWARD : D_REVERSE; }
 
-    M_range<T> reverse() { return M_range(end, start); }
+    M_range<T> reverse() const { return M_range(end, start); }
+
+    bool contains(T const& v) const {
+      M_range<T> r = make_forward(*this);
+      return r.get_start() <= v && v <= r.get_end();
+    }
     
   private:
     T start;
@@ -26,11 +41,16 @@ namespace Para_mugsy {
   template <typename T>
   M_range<T> make_forward(M_range<T> const& r) {
     switch(r.get_direction()) {
-    D_FORWARD:
+    case D_FORWARD:
       return r;
-    D_REVERSE:
+    case D_REVERSE:
       return r.reverse();
     }
+
+    /*
+     * Should never reach this, shutting up compiler thouhg
+     */
+    throw std::exception();
   }
   
   template <typename T>
@@ -50,12 +70,6 @@ namespace Para_mugsy {
   }
 
   template <typename T>
-  bool contains(M_range<T> const& range, T const& v) {
-    M_range<T> r = make_forward(range);
-    return r.get_start() <= v && v <= r.get_end();
-  }
-
-  template <typename T>
   M_range<T> of_pair(std::pair<T, T> const& p) {
     return M_range<T>(p.first, p.second);
   }
@@ -66,3 +80,5 @@ namespace Para_mugsy {
   }
 
 }
+
+#endif
