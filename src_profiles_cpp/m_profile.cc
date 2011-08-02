@@ -58,14 +58,14 @@ namespace Para_mugsy {
           std::getline(fin, p_seq_text);
         }
 
-        return Profile(p_major_name,
-                       p_minor_name,
-                       p_seq_name,
-                       p_range,
-                       p_length,
-                       p_src_size,
-                       p_gaps,
-                       p_seq_text);
+        return M_profile(p_major_name,
+                         p_minor_name,
+                         p_seq_name,
+                         p_range,
+                         p_length,
+                         p_src_size,
+                         p_gaps,
+                         p_seq_text);
       }
       else {
         throw Profile_read_error();
@@ -143,25 +143,31 @@ namespace Para_mugsy {
   }
 
   M_profile subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e) {
-    return Profile("dummy",
-                   "dummy",
-                   "dummy",
-                   M_range<M_seq_idx>(1, 2),
-                   0,
-                   0,
-                   std::vector<M_range<M_profile_idx> >(),
-                   "dummy");
+    (void)p;
+    (void)s;
+    (void)e;
+    return M_profile("dummy",
+                     "dummy",
+                     "dummy",
+                     M_range<M_seq_idx>(1, 2),
+                     0,
+                     0,
+                     std::vector<M_range<M_profile_idx> >(),
+                     "dummy");
   }
   
-  M_profile subset_seq(Profile const& p, M_seq_idx s, M_seq_idx e) {
-    return Profile("dummy",
-                   "dummy",
-                   "dummy",
-                   M_range<M_seq_idx>(1, 2),
-                   0,
-                   0,
-                   std::vector<M_range<M_profile_idx> >(),
-                   "dummy");
+  M_profile subset_seq(M_profile const& p, M_seq_idx s, M_seq_idx e) {
+    (void)p;
+    (void)s;
+    (void)e;    
+    return M_profile("dummy",
+                     "dummy",
+                     "dummy",
+                     M_range<M_seq_idx>(1, 2),
+                     0,
+                     0,
+                     std::vector<M_range<M_profile_idx> >(),
+                     "dummy");
   }
 
 }

@@ -28,15 +28,18 @@ namespace Para_mugsy {
       ref_gaps(ref_gaps),
       query_gaps(query_gaps)
     {}
+
+
+    M_delta_entry reverse() const;
     
-    std::pair<std::string, std::string> const header_names;
-    std::pair<long, long> const header_lengths;
+    std::pair<std::string, std::string> header_names;
+    std::pair<long, long> header_lengths;
 
-    M_range<M_seq_idx> const ref_range;
-    M_range<M_seq_idx> const query_range;
+    M_range<M_seq_idx> ref_range;
+    M_range<M_seq_idx> query_range;
 
-    std::vector<M_range<M_profile_idx> > const ref_gaps;
-    std::vector<M_range<M_profile_idx> > const query_gaps;
+    std::vector<M_range<M_profile_idx> > ref_gaps;
+    std::vector<M_range<M_profile_idx> > query_gaps;
   };
 
   class M_delta_stream {

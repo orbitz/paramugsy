@@ -50,6 +50,19 @@ namespace Para_mugsy {
       p_gaps(p.p_gaps),
       p_seq_text(p.p_seq_text)
     {}
+
+    M_profile& operator=(M_profile const& p) {
+      p_major_name = p.p_major_name;
+      p_minor_name = p.p_minor_name;
+      p_seq_name = p.p_seq_name;
+      p_range = p.p_range;
+      p_length = p.p_length;
+      p_src_size = p.p_src_size;
+      p_gaps = p.p_gaps;
+      p_seq_text = p.p_seq_text;
+
+      return *this;
+    }
     
     std::string p_major_name;
     std::string p_minor_name;
