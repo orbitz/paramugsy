@@ -6,6 +6,8 @@
 #include <vector>
 #include <cmath>
 
+#include <algorithm>
+
 #include <m_option.hh>
 #include <m_profile.hh>
 #include <m_range.hh>
@@ -142,32 +144,57 @@ namespace Para_mugsy {
     }
   }
 
-  M_profile subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e) {
-    (void)p;
-    (void)s;
-    (void)e;
-    return M_profile("dummy",
-                     "dummy",
-                     "dummy",
-                     M_range<M_seq_idx>(1, 2),
-                     0,
-                     0,
-                     std::vector<M_range<M_profile_idx> >(),
-                     "dummy");
+  M_option<M_profile> subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e) {
+    if(s <= 0 || p.p_length < s || e <= 0 || p.p_length < e) {
+      throw Profile_idx_out_of_range();
+    }
+
+    if(s > e) {
+      std::swap(s, e);
+    }
+    
+    for(std::vector<M_range<M_profile_idx> >::const_iterator i = p.p_gaps.begin();
+        i != p.p_gaps.end();
+        ++i) {
+      if(i->get_start() <= s && s <= i->get_end()) {
+        s = i->get_end() + 1;
+      }
+
+      if(i->get_start() <= e && e <= i->get_end()) {
+        e = i->get_start() - 1;
+      }
+    }
+
+    if(e < s) {
+      return M_option<M_profile>();
+    }
+    else {
+      return M_option<M_profile>(subset_seq(p, seq_idx_of_profile_idx(p, s).value(), seq_idx_of_profile_idx(p, e).value()));
+    }
   }
   
   M_profile subset_seq(M_profile const& p, M_seq_idx s, M_seq_idx e) {
-    (void)p;
-    (void)s;
-    (void)e;    
-    return M_profile("dummy",
-                     "dummy",
-                     "dummy",
-                     M_range<M_seq_idx>(1, 2),
-                     0,
-                     0,
-                     std::vector<M_range<M_profile_idx> >(),
-                     "dummy");
+    if(!p.p_range.contains(s) || !p.p_range.contains(e)) {
+      throw Seq_idx_out_of_range();
+    }
+
+    M_range<M_profile_idx> profile_range(profile_idx_of_seq_idx(p, s),
+                                         profile_idx_of_seq_idx(p, e));
+
+    std::vector<M_range<M_profile_idx> > gaps_new;
+    for(std::vector<M_range<M_profile_idx> >::const_iterator i = p.p_gaps.begin();
+        i != p.p_gaps.end();
+        ++i) {
+      if(M_option<M_range<M_profile_idx> > o = overlap(*i, profile_range)) {
+        gaps_new.push_back(o.value());
+      }
+    }
+
+    return M_profile(p.p_major_name,
+                     p.p_minor_name,
+                     p.p_seq_name,
+                     M_range<M_seq_idx>(s, e),
+                     gaps_new);
   }
 
 }

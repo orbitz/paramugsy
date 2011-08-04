@@ -6,29 +6,9 @@
 
 #include <m_delta.hh>
 
-namespace Para_mugsy {
-  M_delta_stream::M_delta_stream(std::istream& in_stream) : in_stream_(in_stream) {
-    std::string line;
+using namespace Para_mugsy;
 
-    if(std::getline(in_stream_, line)) {
-      std::istringstream iss(line);
-      std::string seq1;
-      std::string seq2;
-      if(iss >> seq1 >> seq1) {
-        sequence_files_ = std::make_pair(seq1, seq1);
-        if(!std::getline(in_stream_, stream_type_)) {
-          throw Delta_stream_parse_error();
-        }
-      }
-      else {
-        throw Delta_stream_parse_error();
-      }
-    }
-    else {
-      throw Delta_stream_parse_error();
-    }
-  }
-
+namespace {
   typedef std::pair<strand_t, M_range<M_profile_idx> > gap_range;
   
   M_option<gap_range> _read_gap_range(std::vector<long>::const_iterator& curr,
@@ -86,7 +66,85 @@ namespace Para_mugsy {
       }
     }
   }
-  
+}  
+
+namespace Para_mugsy {
+  M_delta_stream::M_delta_stream(std::istream& in_stream) : in_stream_(in_stream) {
+    std::string line;
+
+    if(std::getline(in_stream_, line)) {
+      std::istringstream iss(line);
+      std::string seq1;
+      std::string seq2;
+      if(iss >> seq1 >> seq1) {
+        sequence_files_ = std::make_pair(seq1, seq1);
+        if(!std::getline(in_stream_, stream_type_)) {
+          throw Delta_stream_parse_error();
+        }
+      }
+      else {
+        throw Delta_stream_parse_error();
+      }
+    }
+    else {
+      throw Delta_stream_parse_error();
+    }
+  }
+
+  M_delta_entry M_delta_entry::reverse() const {
+    std::vector<M_range<M_profile_idx> > ref_gaps_new;
+    std::vector<M_range<M_profile_idx> > query_gaps_new;
+    M_range<M_seq_idx> ref_range_new(ref_range.reverse());
+    M_range<M_seq_idx> query_range_new(query_range.reverse());
+
+    /*
+     * Get the actual length of the reference region profile
+     */
+    long ref_p_length = ref_range.length();
+    for(std::vector<M_range<M_profile_idx> >::const_iterator i = ref_gaps.begin();
+        i != ref_gaps.end();
+        ++i) {
+      ref_p_length += i->length();
+    }
+
+    /*
+     * Flip gaps and adjust their position inside the profile
+     */
+    for(std::vector<M_range<M_profile_idx> >::const_reverse_iterator ri = ref_gaps.rbegin();
+        ri != ref_gaps.rend();
+        ++ri) {
+      ref_gaps_new.push_back(M_range<M_profile_idx>(ref_p_length - ri->get_end() + 1,
+                                                    ref_p_length - ri->get_start() + 1));
+    }
+
+    /*
+     * Get the actual length of the reference region profile
+     */
+    long query_p_length = query_range.length();
+    for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_gaps.begin();
+        i != query_gaps.end();
+        ++i) {
+      query_p_length += i->length();
+    }    
+
+    /*
+     * Flip gaps an adjust their position inside the profile
+     */
+    for(std::vector<M_range<M_profile_idx> >::const_reverse_iterator ri = query_gaps.rbegin();
+        ri != query_gaps.rend();
+        ++ri) {
+      query_gaps_new.push_back(M_range<M_profile_idx>(query_p_length - ri->get_end() + 1,
+                                                      query_p_length - ri->get_start() + 1));
+    }
+
+    return M_delta_entry(header_names,
+                         header_lengths,
+                         ref_range_new,
+                         query_range_new,
+                         ref_gaps_new,
+                         query_gaps_new);
+  }
+
   M_option<M_delta_entry> M_delta_stream::next() {
     std::string line;
 

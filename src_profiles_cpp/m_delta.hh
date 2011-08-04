@@ -29,6 +29,14 @@ namespace Para_mugsy {
       query_gaps(query_gaps)
     {}
 
+    M_delta_entry(M_delta_entry const& de) :
+      header_names(de.header_names),
+      header_lengths(de.header_lengths),
+      ref_range(de.ref_range),
+      query_range(de.query_range),
+      ref_gaps(de.ref_gaps),
+      query_gaps(de.query_gaps)
+    {}
 
     M_delta_entry reverse() const;
     

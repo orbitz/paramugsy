@@ -40,6 +40,27 @@ namespace Para_mugsy {
       p_seq_text(p_seq_text)
     {}
 
+    M_profile(std::string const& p_major_name,
+              std::string const& p_minor_name,
+              std::string const& p_seq_name,
+              M_range<M_seq_idx> const& p_range,
+              std::vector<M_range<M_profile_idx> > const& p_gaps) :
+      p_major_name(p_major_name),
+      p_minor_name(p_minor_name),
+      p_seq_name(p_seq_name),
+      p_range(p_range),
+      p_length(p_range.length()),
+      p_src_size(0),
+      p_gaps(p_gaps),
+      p_seq_text("")
+    {
+      for(std::vector<M_range<M_profile_idx> >::const_iterator i = p_gaps.begin();
+          i != p_gaps.end();
+          ++i) {
+        p_length += i->length();
+      }
+    }
+    
     M_profile(M_profile const& p) :
       p_major_name(p.p_major_name),
       p_minor_name(p.p_minor_name),
@@ -88,7 +109,7 @@ namespace Para_mugsy {
   M_profile_idx profile_idx_of_seq_idx(M_profile const& p, M_seq_idx si);
   M_option<M_seq_idx> seq_idx_of_profile_idx(M_profile const& p, M_profile_idx pi);
 
-  M_profile subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e);
+  M_option<M_profile> subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e);
   M_profile subset_seq(M_profile const& p, M_seq_idx s, M_seq_idx e);
   
 }
