@@ -19,6 +19,16 @@ namespace Para_mugsy {
       query_metaprofile(query_metaprofile)
     {}
 
+    void reset(M_profile_idx const& ref_start_,
+               M_profile_idx const& query_start_) {
+      ref_gaps.clear();
+      query_gaps.clear();
+      ref_start = ref_start_;
+      ref_pos = ref_start_;
+      query_start = query_start_;
+      query_pos = query_start_;
+    }
+    
     void add_gap(strand_t strand, M_range<M_profile_idx> const& diff) {
       switch(strand) {
       case S_REF:

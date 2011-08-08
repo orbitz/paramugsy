@@ -1,6 +1,8 @@
 #ifndef M_PROFILE_HH
 #define M_PROFILE_HH
 
+#include <ostream>
+
 #include <vector>
 #include <string>
 
@@ -111,6 +113,24 @@ namespace Para_mugsy {
 
   M_option<M_profile> subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e);
   M_profile subset_seq(M_profile const& p, M_seq_idx s, M_seq_idx e);
+
+
+  inline std::ostream& operator<<(std::ostream& out, M_profile const& p) {
+    out << "p_major_name = " << p.p_major_name << "\n";
+    out << "p_minor_name = " << p.p_minor_name << "\n";
+    out << "p_seq_name = " << p.p_seq_name << "\n";
+    out << "p_range = (" << p.p_range.get_start() << ", " << p.p_range.get_end() << ")\n";
+    out << "p_length = " << p.p_length << "\n";
+    out << "p_src_size = " << p.p_src_size << "\n";
+    out << "p_gaps = \n";
+    for(std::vector<M_range<M_profile_idx> >::const_iterator i = p.p_gaps.begin();
+        i != p.p_gaps.end();
+        ++i) {
+      out << "(" << i->get_start() << ", " << i->get_end() << ") ";
+    }
+    out << "\n";
+    return out;
+  }
   
 }
 

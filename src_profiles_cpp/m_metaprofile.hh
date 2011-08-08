@@ -5,6 +5,11 @@
 
 namespace Para_mugsy {
   class M_metaprofile {
+    /*
+     * The tricky thing here is a metaprofile doesn't contain the actual profile
+     * in side of it, it's just a reference to it, so the actual profile must
+     * exist the entire time
+     */
   public:
     M_metaprofile(M_profile const& profile) : profile(profile), reversed(false) {}
     M_metaprofile(M_profile const& profile, bool reversed) : profile(profile), reversed(reversed) {}
@@ -24,7 +29,7 @@ namespace Para_mugsy {
     }
 
 
-    M_profile profile;
+    M_profile const& profile;
     bool reversed;
   };
 
