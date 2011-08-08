@@ -9,14 +9,13 @@
 
 #include <cassert>
 
-#include <sys/types.h>
-#include <dirent.h>
-
 #include <m_delta.hh>
 #include <m_delta_builder.hh>
 #include <m_profile.hh>
 #include <m_metaprofile.hh>
 #include <m_translate.hh>
+
+#include <m_fileutils.hh>
 
 using namespace Para_mugsy;
 
@@ -41,11 +40,11 @@ namespace {
         long r_diff = ref_gap.get_start() - ref_s;
         long q_diff = query_gap.get_start() - query_s;
 
-        std::cout << "r_diff = " << r_diff << std::endl;
-        std::cout << "q_diff = " << q_diff << std::endl;
-        std::cout << "ref_s = " << ref_s << " query_s = " << query_s << std::endl;
-        std::cout << "ref_gap = (" << ref_gap.get_start() << ", " << ref_gap.get_end() << ")\n";
-        std::cout << "query_gap = (" << query_gap.get_start() << ", " << query_gap.get_end() << ")\n";
+        //std::cout << "r_diff = " << r_diff << std::endl;
+        //std::cout << "q_diff = " << q_diff << std::endl;
+        //std::cout << "ref_s = " << ref_s << " query_s = " << query_s << std::endl;
+        //std::cout << "ref_gap = (" << ref_gap.get_start() << ", " << ref_gap.get_end() << ")\n";
+        //std::cout << "query_gap = (" << query_gap.get_start() << ", " << query_gap.get_end() << ")\n";
         
         assert(r_diff >= 0);
         assert(q_diff >= 0);
@@ -175,21 +174,6 @@ namespace {
     M_profile_idx d_profile_end;
   };
   
-  std::vector<std::string> _list_dir(std::string const& dir) {
-    std::vector<std::string> ret;
-    DIR *d = opendir(dir.c_str());
-
-    if(d) {
-      while(struct dirent *f = readdir(d)) {
-        ret.push_back(dir + '/' + f->d_name);
-      }
-      closedir(d);
-    }
-    else {
-      throw Read_dir_error();
-    }
-    return ret;
-  }
 
   bool _is_not_idx(std::string const& f) {
     std::string::size_type s = f.find(".idx");
@@ -197,7 +181,7 @@ namespace {
   }
   
   std::vector<std::string> _list_dir_idx(std::string const& dir) {
-    std::vector<std::string> ret = _list_dir(dir);
+    std::vector<std::string> ret = list_dir(dir);
     std::vector<std::string>::iterator new_last = remove_if(ret.begin(),
                                                             ret.end(),
                                                             _is_not_idx);
@@ -229,9 +213,65 @@ namespace {
     }
   }
 
+  void _push_ones(std::vector<long>& gaps, strand_t s, long ones) {
+    long one = S_REF == s ? -1 : 1;
+    for(; ones > 0; --ones) {
+      gaps.push_back(one);
+    }
+  }
+  
+  std::vector<long> _deltas_of_gaps(M_delta_entry const& de) {
+    std::vector<long> ret;
+    std::vector<M_range<M_profile_idx> >::const_iterator ref_i = de.ref_gaps.begin();
+    std::vector<M_range<M_profile_idx> >::const_iterator query_i = de.query_gaps.begin();
+    long pos = 0;
+    
+    while(1) {
+      if(ref_i != de.ref_gaps.end() && query_i != de.query_gaps.end()) {
+        if(ref_i->get_start() < query_i->get_start()) {
+          ret.push_back(-(ref_i->get_start() - pos));
+          _push_ones(ret, S_REF, ref_i->length() - 1);
+          pos = ref_i->get_end();
+          ++ref_i;
+        }
+        else {
+          ret.push_back(-(query_i->get_start() - pos));
+          _push_ones(ret, S_QUERY, query_i->length() - 1);
+          pos = query_i->get_end();
+          ++query_i;
+        }
+      }
+      else if(ref_i != de.ref_gaps.end()) {
+        ret.push_back(-(ref_i->get_start() - pos));
+        _push_ones(ret, S_REF, ref_i->length() - 1);
+        pos = ref_i->get_end();
+        ++ref_i;
+      }
+      else if(query_i != de.query_gaps.end()) {
+        ret.push_back(-(query_i->get_start() - pos));
+        _push_ones(ret, S_QUERY, query_i->length() - 1);
+        pos = query_i->get_end();
+        ++query_i;
+      }
+      else {
+        ret.push_back(0);
+        break;
+      }
+    }
+    return ret;
+  }
 
   void _write_delta_entry(M_delta_entry const& de, std::ostream& out_stream) {
-    out_stream << de.header_names.first << '\n';
+    std::vector<long> gaps = _deltas_of_gaps(de);
+    out_stream << '>' << de.header_names.first << ' ' << de.header_names.second << ' ';
+    out_stream << de.header_lengths.first << ' ' << de.header_lengths.second << '\n';
+    out_stream << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
+    out_stream << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
+    for(std::vector<long>::const_iterator i = gaps.begin();
+        i != gaps.end();
+        ++i) {
+      out_stream << *i << '\n';
+    }
   }
 
   
@@ -329,7 +369,7 @@ namespace {
         gd.profile_gaps.advance_strand(gr_gap.first);
         M_option<M_delta_entry> de_o = db.to_delta();
         db.reset(gd.ref_profile_pos, gd.query_metaprofile_pos);
-        std::cout << "1\n";
+        //std::cout << "1\n";
         if(de_o) {
           _write_delta_entry(de_o.value(), out_stream);
         }
@@ -339,7 +379,7 @@ namespace {
         db.add_gap(d_gap.first, d_diff);
         _update_pos_by_d_gap_strand(d_gap.first, d_diff, gd);
         gd.d_profile_gaps.advance_strand(d_gap.first);
-        std::cout << "2\n";
+        //std::cout << "2\n";
       }
       else if(gr_gap.first == d_gap.first) {
         /*
@@ -403,7 +443,7 @@ namespace {
           _update_pos_by_d_gap_strand(d_gap.first, d_gr_diff_split, gd);
           gd.d_profile_gaps.advance_strand(d_gap.first);
           gd.d_profile_gaps.unnext(d_gap.first, d_gr_back);
-          std::cout << "3\n";
+          //std::cout << "3\n";
         }
       }
       else {
@@ -420,7 +460,7 @@ namespace {
         _update_pos_by_d_gap_strand(d_gap.first, d_gr_diff_split, gd);
         gd.d_profile_gaps.advance_strand(d_gap.first);
         gd.d_profile_gaps.unnext(d_gap.first, d_gr_back);
-        std::cout << "4\n";
+        //std::cout << "4\n";
       }
     }
     else if(gr_gap_o) {
@@ -460,7 +500,7 @@ namespace {
       gd.profile_gaps.advance_strand(gr_gap.first);
       M_option<M_delta_entry> de = db.to_delta();
       db.reset(gd.ref_profile_pos, gd.query_metaprofile_pos);
-      std::cout << "5\n";
+      //std::cout << "5\n";
       if(de) {
         _write_delta_entry(de.value(), out_stream);
       }
@@ -473,7 +513,7 @@ namespace {
       db.add_gap(d_gap.first, d_diff);
       _update_pos_by_d_gap_strand(d_gap.first, d_diff, gd);
       gd.d_profile_gaps.advance_strand(d_gap.first);
-      std::cout << "6\n";
+      //std::cout << "6\n";
     }
     else {
       /*
@@ -488,7 +528,7 @@ namespace {
       if(gd.d_profile_pos <= gd.d_profile_end) {
         long diff = gd.d_profile_end - gd.d_profile_pos + 1;
         db.add_offset(diff);
-        std::cout << "7\n";
+        //std::cout << "7\n";
         if(M_option<M_delta_entry> de = db.to_delta()) {
           _write_delta_entry(de.value(), out_stream);
         }
@@ -586,7 +626,7 @@ namespace {
           for(std::vector<M_range<M_profile_idx> >::reverse_iterator i = query_profile_sub.p_gaps.rbegin();
               i != query_profile_sub.p_gaps.rend();
               ++i) {
-            std::cout << "reversing\n";
+            //std::cout << "reversing\n";
             query_profile_gaps.push_back(M_range<M_profile_idx>(query_metaprofile.profile_idx_of_profile_idx(i->get_end()),
                                                                 query_metaprofile.profile_idx_of_profile_idx(i->get_start())));
           }
@@ -606,7 +646,7 @@ namespace {
           query_start = profile_idx_of_seq_idx(query_profile, query_profile_sub.p_range.get_start());
         }
 
-        std::cout << "query_profile_sub.p_range = (" << query_profile_sub.p_range.get_start() << ", " << query_profile_sub.p_range.get_end() << ")\n";
+        //std::cout << "query_profile_sub.p_range = (" << query_profile_sub.p_range.get_start() << ", " << query_profile_sub.p_range.get_end() << ")\n";
 
         M_profile_idx d_profile_pos = d_overlap.value().get_start();
         M_profile_idx d_profile_end = d_overlap.value().get_end();
@@ -636,30 +676,30 @@ namespace {
                            query_start,
                            query_metaprofile);
 
-        std::cout << ref_profile << "\n";
-        std::cout << ref_profile_sub << "\n";
-        std::cout << query_profile << "\n";
-        std::cout << query_profile_sub << "\n";
-        for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_profile_gaps.begin();
-            i != query_profile_gaps.end();
-            ++i) {
-          std::cout << "(" << i->get_start() << ", " << i->get_end() << ")";
-        }
-        std::cout << "\n";
-        std::cout << d_ref_profile_sub << "\n";
-        std::cout << d_query_profile_sub << "\n";
-        std::cout << "ref_start = " << ref_start << "\n";
-        std::cout << "query_start = " << query_start << "\n";
-        std::cout << "d_profile_pos = " << d_profile_pos << "\n";
+        //std::cout << ref_profile << "\n";
+        //std::cout << ref_profile_sub << "\n";
+        //std::cout << query_profile << "\n";
+        //std::cout << query_profile_sub << "\n";
+        //for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_profile_gaps.begin();
+        //    i != query_profile_gaps.end();
+        //    ++i) {
+        //  std::cout << "(" << i->get_start() << ", " << i->get_end() << ")";
+        //}
+        //std::cout << "\n";
+        //std::cout << d_ref_profile_sub << "\n";
+        //std::cout << d_query_profile_sub << "\n";
+        //std::cout << "ref_start = " << ref_start << "\n";
+        //std::cout << "query_start = " << query_start << "\n";
+        //std::cout << "d_profile_pos = " << d_profile_pos << "\n";
         
-        std::cout << "Looping...\n";
+        //std::cout << "Looping...\n";
         while(!gd.profile_gaps.at_end() && !gd.profile_gaps.at_end()) {
           _generate_delta_alignment(gd, db, out_stream);
         }
         /*
          * And we do one more to catch the ending set
          */
-        std::cout << "Final call...\n";
+        //std::cout << "Final call...\n";
         _generate_delta_alignment(gd, db, out_stream);
       }
     }
