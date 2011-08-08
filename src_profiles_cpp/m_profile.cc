@@ -178,6 +178,11 @@ namespace Para_mugsy {
       throw Seq_idx_out_of_range();
     }
 
+    M_range<M_seq_idx> dir_test(s, e);
+    if(p.p_range.get_direction() != dir_test.get_direction()) {
+      std::swap(s, e);
+    }
+
     M_range<M_profile_idx> profile_range(profile_idx_of_seq_idx(p, s),
                                          profile_idx_of_seq_idx(p, e));
 

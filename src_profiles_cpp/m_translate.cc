@@ -497,9 +497,9 @@ namespace {
   }
   
   void _generate_delta(M_delta_entry const& de,
-                       M_profile const& left_profile,
+                       M_profile const& ref_profile,
                        M_range<M_seq_idx> const& ref_seq,
-                       M_profile const& right_profile,
+                       M_profile const& query_profile,
                        M_range<M_seq_idx> const& query_seq,
                        std::ostream& out_stream) {
     /*
@@ -561,11 +561,11 @@ namespace {
         M_profile const& d_ref_profile_sub = d_ref_profile_sub_o.value();
         M_profile const& d_query_profile_sub = d_query_profile_sub_o.value();
 
-        M_profile ref_profile_sub = subset_seq(left_profile,
+        M_profile ref_profile_sub = subset_seq(ref_profile,
                                                d_ref_profile_sub.p_range.get_start(),
                                                d_ref_profile_sub.p_range.get_end());
 
-        M_profile query_profile_sub = subset_seq(right_profile,
+        M_profile query_profile_sub = subset_seq(query_profile,
                                                  d_query_profile_sub.p_range.get_start(),
                                                  d_query_profile_sub.p_range.get_end());
 
@@ -579,8 +579,8 @@ namespace {
          * Setup our query metaprofile and reverse the gaps if we'll actually be walking the
          * profile in reverse
          */
-        bool reverse_metaprofile = left_profile.p_range.get_direction() != d_query_profile.p_range.get_direction();
-        M_metaprofile query_metaprofile(left_profile, reverse_metaprofile);
+        bool reverse_metaprofile = query_profile.p_range.get_direction() != d_query_profile.p_range.get_direction();
+        M_metaprofile query_metaprofile(query_profile, reverse_metaprofile);
         std::vector<M_range<M_profile_idx> > query_profile_gaps;
         if(query_metaprofile.is_reversed()) {
           for(std::vector<M_range<M_profile_idx> >::reverse_iterator i = query_profile_sub.p_gaps.rbegin();
@@ -595,16 +595,18 @@ namespace {
           query_profile_gaps = query_profile_sub.p_gaps;
         }
 
-        M_profile_idx ref_start = profile_idx_of_seq_idx(left_profile, ref_profile_sub.p_range.get_start());
+        M_profile_idx ref_start = profile_idx_of_seq_idx(ref_profile, ref_profile_sub.p_range.get_start());
         M_profile_idx query_start;
 
         if(query_metaprofile.is_reversed()) {
           query_start =
-            query_metaprofile.profile_idx_of_profile_idx(profile_idx_of_seq_idx(right_profile, query_profile_sub.p_range.get_end()));
+            query_metaprofile.profile_idx_of_profile_idx(profile_idx_of_seq_idx(query_profile, query_profile_sub.p_range.get_end()));
         }
         else {
-          query_start = profile_idx_of_seq_idx(right_profile, query_profile_sub.p_range.get_start());
+          query_start = profile_idx_of_seq_idx(query_profile, query_profile_sub.p_range.get_start());
         }
+
+        std::cout << "query_profile_sub.p_range = (" << query_profile_sub.p_range.get_start() << ", " << query_profile_sub.p_range.get_end() << ")\n";
 
         M_profile_idx d_profile_pos = d_overlap.value().get_start();
         M_profile_idx d_profile_end = d_overlap.value().get_end();
@@ -618,7 +620,7 @@ namespace {
                                      d_query_profile_sub.p_gaps.begin(),
                                      d_query_profile_sub.p_gaps.end());
         
-        _gd_state gd(left_profile,
+        _gd_state gd(ref_profile,
                      query_metaprofile,
                      profile_gaps,
                      d_profile_gaps,
@@ -628,13 +630,15 @@ namespace {
                      d_profile_end);
         
         M_delta_builder db(std::make_pair("", ""),
-                           std::make_pair(left_profile.p_major_name, left_profile.p_length),
-                           std::make_pair(right_profile.p_major_name, right_profile.p_length),
+                           std::make_pair(ref_profile.p_major_name, ref_profile.p_length),
+                           std::make_pair(query_profile.p_major_name, query_profile.p_length),
                            ref_start,
                            query_start,
                            query_metaprofile);
 
+        std::cout << ref_profile << "\n";
         std::cout << ref_profile_sub << "\n";
+        std::cout << query_profile << "\n";
         std::cout << query_profile_sub << "\n";
         for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_profile_gaps.begin();
             i != query_profile_gaps.end();
