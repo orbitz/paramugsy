@@ -7,6 +7,8 @@
 #include <string>
 #include <map>
 
+#include <algorithm>
+
 #include <cassert>
 
 #include <m_delta.hh>

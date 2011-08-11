@@ -31,7 +31,7 @@ namespace Para_mugsy {
     
     void add_gap(strand_t strand, M_range<M_profile_idx> const& diff) {
       switch(strand) {
-      case S_REF:
+      case S_REF: {
         long ref_len = ref_pos - ref_start;
         for(std::vector<M_range<M_profile_idx> >::const_iterator i = ref_gaps.begin();
             i != ref_gaps.end();
@@ -44,7 +44,8 @@ namespace Para_mugsy {
         ref_pos += diff.get_start();
         query_pos += diff.get_end() + 1;
         break;
-      case S_QUERY:
+      }
+      case S_QUERY: {
         long query_len = query_pos - query_start;
         for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_gaps.begin();
             i != query_gaps.end();
@@ -57,6 +58,7 @@ namespace Para_mugsy {
         ref_pos += diff.get_end() + 1;
         query_pos += diff.get_start();
         break;
+      }
       }
     }
 
