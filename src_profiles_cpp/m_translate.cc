@@ -35,11 +35,12 @@ namespace {
     void write(M_delta_entry const& de) {
       if(de.header_names != header_names) {
         out_stream << '>' << de.header_names.first << ' ' << de.header_names.second << ' ';
+        out_stream << de.header_lengths.first << ' ' << de.header_lengths.second << '\n';
+
         header_names = de.header_names;
       }
       
       std::vector<long> gaps = _deltas_of_gaps(de);
-      out_stream << de.header_lengths.first << ' ' << de.header_lengths.second << '\n';
       out_stream << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
       out_stream << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
       for(std::vector<long>::const_iterator i = gaps.begin();
