@@ -21,6 +21,37 @@ using namespace Para_mugsy;
 
 namespace {
   class Already_unnext_gap : public std::exception {};
+
+  std::vector<long> _deltas_of_gaps(M_delta_entry const& de);
+  
+  class _delta_stream_writer {
+  public:
+    _delta_stream_writer(std::ostream& out_stream) :
+      out_stream(out_stream)
+    {}
+
+    void write(M_delta_entry const& de) {
+      if(de.header_names != header_names) {
+        out_stream << '>' << de.header_names.first << ' ' << de.header_names.second << ' ';
+        header_names = de.header_names;
+      }
+      
+      std::vector<long> gaps = _deltas_of_gaps(de);
+      out_stream << de.header_lengths.first << ' ' << de.header_lengths.second << '\n';
+      out_stream << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
+      out_stream << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
+      for(std::vector<long>::const_iterator i = gaps.begin();
+          i != gaps.end();
+          ++i) {
+        out_stream << *i << '\n';
+      }
+    }
+    
+  private:
+    std::ostream& out_stream;
+    std::pair<std::string, std::string> header_names;
+  };
+
   
   class _gap_iterator {
   public:
@@ -261,20 +292,6 @@ namespace {
     return ret;
   }
 
-  void _write_delta_entry(M_delta_entry const& de, std::ostream& out_stream) {
-    std::vector<long> gaps = _deltas_of_gaps(de);
-    out_stream << '>' << de.header_names.first << ' ' << de.header_names.second << ' ';
-    out_stream << de.header_lengths.first << ' ' << de.header_lengths.second << '\n';
-    out_stream << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
-    out_stream << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
-    for(std::vector<long>::const_iterator i = gaps.begin();
-        i != gaps.end();
-        ++i) {
-      out_stream << *i << '\n';
-    }
-  }
-
-  
   void _update_pos_by_d_gap_strand(strand_t s, M_range<long> const& d_diff, _gd_state& gd) {
     if(S_REF == s) {
       gd.ref_profile_pos += d_diff.get_start();
@@ -334,7 +351,7 @@ namespace {
     }
   }
   
-  void _generate_delta_alignment(_gd_state& gd, M_delta_builder& db, std::ostream& out_stream) {
+  void _generate_delta_alignment(_gd_state& gd, M_delta_builder& db, _delta_stream_writer& dsw) {
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > gr_gap_o = gd.profile_gaps.curr(gd.ref_profile_pos, gd.query_metaprofile_pos);
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > d_gap_o = gd.d_profile_gaps.curr(gd.d_profile_pos, gd.d_profile_pos);
     
@@ -371,7 +388,7 @@ namespace {
         db.reset(gd.ref_profile_pos, gd.query_metaprofile_pos);
         //std::cout << "1\n";
         if(de_o) {
-          _write_delta_entry(de_o.value(), out_stream);
+          dsw.write(de_o.value());
         }
       }
       else if(d_diff.get_end() < gr_diff.get_start() || (gr_gap.first == d_gap.first &&
@@ -502,7 +519,7 @@ namespace {
       db.reset(gd.ref_profile_pos, gd.query_metaprofile_pos);
       //std::cout << "5\n";
       if(de) {
-        _write_delta_entry(de.value(), out_stream);
+        dsw.write(de.value());
       }
     }
     else if(d_gap_o) {
@@ -530,7 +547,7 @@ namespace {
         db.add_offset(diff);
         //std::cout << "7\n";
         if(M_option<M_delta_entry> de = db.to_delta()) {
-          _write_delta_entry(de.value(), out_stream);
+          dsw.write(de.value());
         }
       }
     }
@@ -541,7 +558,7 @@ namespace {
                        M_range<M_seq_idx> const& ref_seq,
                        M_profile const& query_profile,
                        M_range<M_seq_idx> const& query_seq,
-                       std::ostream& out_stream) {
+                       _delta_stream_writer& dsw) {
     /*
      * We know that both profiles overlap our delta entry in some way but we do not know if
      * where they overlap the delta entry, the delta entry still overlaps itself.  That is to say
@@ -694,13 +711,13 @@ namespace {
         
         //std::cout << "Looping...\n";
         while(!gd.profile_gaps.at_end() && !gd.profile_gaps.at_end()) {
-          _generate_delta_alignment(gd, db, out_stream);
+          _generate_delta_alignment(gd, db, dsw);
         }
         /*
          * And we do one more to catch the ending set
          */
         //std::cout << "Final call...\n";
-        _generate_delta_alignment(gd, db, out_stream);
+        _generate_delta_alignment(gd, db, dsw);
       }
     }
   }
@@ -710,7 +727,7 @@ namespace {
   void _translate_delta_with_profiles(M_profile const& left_profile,
                                       M_profile const& right_profile,
                                       M_delta_entry const& de,
-                                      std::ostream& out_stream) {
+                                      _delta_stream_writer& dsw) {
     /*
      * We know that the profiles correspond to the names in the delta entry but
      * we don't know if these profiles actually overlap the delta entry at all.
@@ -727,7 +744,7 @@ namespace {
 
       M_delta_entry n_de = _reverse_if_needed(de, left_profile);
 
-      _generate_delta(n_de, left_profile, ref_overlap, right_profile, query_overlap, out_stream);
+      _generate_delta(n_de, left_profile, ref_overlap, right_profile, query_overlap, dsw);
     }
   }
   
@@ -735,7 +752,7 @@ namespace {
   void _translate_delta(std::map<std::string, std::vector<M_profile> > const& left_profile_map,
                         std::map<std::string, std::vector<M_profile> > const& right_profile_map,
                         M_delta_stream& ds,
-                        std::ostream& out_stream) {
+                        _delta_stream_writer& dsw) {
     while(M_option<M_delta_entry> d = ds.next()) {
       std::map<std::string, std::vector<M_profile> >::const_iterator left_profiles_i = left_profile_map.find(d.value().header_names.first);
       std::map<std::string, std::vector<M_profile> >::const_iterator right_profiles_i = right_profile_map.find(d.value().header_names.second);      
@@ -761,7 +778,7 @@ namespace {
           for(std::vector<M_profile>::const_iterator right_i = right_profiles.begin();
               right_i != right_profiles.end();
               ++right_i) {
-            _translate_delta_with_profiles(*left_i, *right_i, d.value(), out_stream);
+            _translate_delta_with_profiles(*left_i, *right_i, d.value(), dsw);
           }
         }
       }
@@ -778,12 +795,14 @@ namespace Para_mugsy {
     std::map<std::string, std::vector<M_profile> > left_profile_map = _profile_map_of_dir(left_dir);
     std::map<std::string, std::vector<M_profile> > right_profile_map = _profile_map_of_dir(right_dir);
 
+    _delta_stream_writer dsw(out_stream);
+    
     for(std::vector<std::string>::const_iterator i = nucmer_list.begin();
         i != nucmer_list.end();
         ++i) {
       std::ifstream in_delta_stream(i->c_str());
       M_delta_stream ds(in_delta_stream);
-      _translate_delta(left_profile_map, right_profile_map, ds, out_stream);
+      _translate_delta(left_profile_map, right_profile_map, ds, dsw);
     }
   }
 
