@@ -211,16 +211,16 @@ namespace {
 
   bool _is_not_idx(std::string const& f) {
     std::string::size_type s = f.find(".idx");
-    return s != std::string::npos;
+    return s == std::string::npos;
   }
   
   std::vector<std::string> _list_dir_idx(std::string const& dir) {
     std::vector<std::string> ret = list_dir(dir);
-    std::vector<std::string>::iterator new_last = remove_if(ret.begin(),
-                                                            ret.end(),
-                                                            _is_not_idx);
-    ret.erase(ret.begin(), new_last);
-
+    std::vector<std::string>::iterator new_last = std::remove_if(ret.begin(),
+                                                                 ret.end(),
+                                                                 _is_not_idx);
+    ret.erase(new_last, ret.end());
+    
     return ret;
   }
 
