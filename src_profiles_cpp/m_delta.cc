@@ -15,14 +15,16 @@ namespace {
                                       std::vector<long>::const_iterator& end,
                                       long offset) {
     if(curr != end) {
+      std::cout << "curr = " << *curr << "\n";
+      std::cout << "offset = " << offset <<"\n";
       long next_gap = *curr;
       strand_t strand = next_gap > 0 ? S_QUERY : S_REF;
       long gap_offset = next_gap > 0 ? next_gap : -next_gap;
-      offset += (gap_offset - 1);
+      offset += gap_offset;
       ++curr;
 
       long gap_length = 0;
-      for(; curr != end; ++curr) {
+      for(; curr != end && (1 == *curr || -1 == *curr); ++curr) {
         long next_gap = *curr;
         strand_t curr_strand = next_gap > 0 ? S_QUERY : S_REF;
         if(strand != curr_strand) {
@@ -32,6 +34,7 @@ namespace {
         gap_length += 1;
       }
 
+      std::cout << "gap = (" << offset << ", " << (offset + gap_length) << ")\n";
       return M_option<gap_range>(std::make_pair(strand,
                                                 M_range<M_profile_idx>(offset, offset + gap_length)));
     }
@@ -52,10 +55,10 @@ namespace {
                    std::vector<M_range<M_profile_idx> >& query_gaps) {
     std::vector<long>::const_iterator curr = gaps.begin();
     std::vector<long>::const_iterator end = gaps.end();
-    M_profile_idx offset = 1;
+    M_profile_idx offset = 0;
 
     while(M_option<gap_range> gap = _read_gap_range(curr, end, offset)) {
-      offset += gap.value().second.get_end() + 1;
+      offset = gap.value().second.get_end();
       switch(gap.value().first) {
       case S_REF:
         ref_gaps.push_back(gap.value().second);
