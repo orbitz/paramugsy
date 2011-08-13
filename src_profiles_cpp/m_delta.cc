@@ -15,8 +15,6 @@ namespace {
                                       std::vector<long>::const_iterator& end,
                                       long offset) {
     if(curr != end) {
-      std::cout << "curr = " << *curr << "\n";
-      std::cout << "offset = " << offset <<"\n";
       long next_gap = *curr;
       strand_t strand = next_gap > 0 ? S_QUERY : S_REF;
       long gap_offset = next_gap > 0 ? next_gap : -next_gap;
@@ -34,7 +32,6 @@ namespace {
         gap_length += 1;
       }
 
-      std::cout << "gap = (" << offset << ", " << (offset + gap_length) << ")\n";
       return M_option<gap_range>(std::make_pair(strand,
                                                 M_range<M_profile_idx>(offset, offset + gap_length)));
     }

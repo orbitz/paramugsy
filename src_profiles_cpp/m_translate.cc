@@ -39,9 +39,7 @@ namespace {
 
         header_names = de.header_names;
       }
-      std::cout << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
-      std::cout << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
-      
+
       std::vector<long> gaps = _deltas_of_gaps(de);
       out_stream << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
       out_stream << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
