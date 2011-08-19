@@ -15,12 +15,12 @@ namespace Para_mugsy {
   enum strand_t { S_REF, S_QUERY };
   
   struct M_delta_entry {
-    M_delta_entry(std::pair<std::string, std::string> const& header_names,
-                  std::pair<long, long> const& header_lengths,
-                  M_range<M_seq_idx> const& ref_range,
-                  M_range<M_seq_idx> const& query_range,
-                  std::vector<M_range<M_profile_idx> > const& ref_gaps,
-                  std::vector<M_range<M_profile_idx> > const& query_gaps) :
+    M_delta_entry(std::pair<std::string, std::string> const &header_names,
+                  std::pair<long, long> const &header_lengths,
+                  M_range<M_seq_idx> const &ref_range,
+                  M_range<M_seq_idx> const &query_range,
+                  std::vector<M_range<M_profile_idx> > const &ref_gaps,
+                  std::vector<M_range<M_profile_idx> > const &query_gaps) :
       header_names(header_names),
       header_lengths(header_lengths),
       ref_range(ref_range),
@@ -29,7 +29,7 @@ namespace Para_mugsy {
       query_gaps(query_gaps)
     {}
 
-    M_delta_entry(M_delta_entry const& de) :
+    M_delta_entry(M_delta_entry const &de) :
       header_names(de.header_names),
       header_lengths(de.header_lengths),
       ref_range(de.ref_range),
@@ -38,6 +38,17 @@ namespace Para_mugsy {
       query_gaps(de.query_gaps)
     {}
 
+    M_delta_entry &operator=(M_delta_entry const &de) {
+      header_names = de.header_names;
+      header_lengths = de.header_lengths;
+      ref_range = de.ref_range;
+      query_range = de.query_range;
+      ref_gaps = de.ref_gaps;
+      query_gaps = de.query_gaps;
+
+      return *this;
+    }
+    
     M_delta_entry reverse() const;
     
     std::pair<std::string, std::string> header_names;
@@ -52,15 +63,15 @@ namespace Para_mugsy {
 
   class M_delta_stream {
   public:
-    M_delta_stream(std::istream& ifstream);
+    M_delta_stream(std::istream &ifstream);
 
-    std::string const& stream_type() { return stream_type_; }
-    std::pair<std::string, std::string> const& sequence_files() { return sequence_files_; }
+    std::string const &stream_type() { return stream_type_; }
+    std::pair<std::string, std::string> const &sequence_files() { return sequence_files_; }
 
     M_option<M_delta_entry> next();
 
   private:
-    std::istream& in_stream_;
+    std::istream &in_stream_;
     std::string stream_type_;
     std::pair<std::string, std::string> sequence_files_;
     std::pair<std::string, std::string> header_names_;
