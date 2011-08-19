@@ -15,6 +15,7 @@
 #include <m_delta_builder.hh>
 #include <m_profile.hh>
 #include <m_metaprofile.hh>
+#include <m_delta_stream_writer.hh>
 #include <m_translate.hh>
 
 #include <m_fileutils.hh>
@@ -24,36 +25,6 @@ using namespace Para_mugsy;
 namespace {
   class Already_unnext_gap : public std::exception {};
 
-  std::vector<long> _deltas_of_gaps(M_delta_entry const& de);
-  
-  class _delta_stream_writer {
-  public:
-    _delta_stream_writer(std::ostream& out_stream) :
-      out_stream(out_stream)
-    {}
-
-    void write(M_delta_entry const& de) {
-      if(de.header_names != header_names) {
-        out_stream << '>' << de.header_names.first << ' ' << de.header_names.second << ' ';
-        out_stream << de.header_lengths.first << ' ' << de.header_lengths.second << '\n';
-
-        header_names = de.header_names;
-      }
-
-      std::vector<long> gaps = _deltas_of_gaps(de);
-      out_stream << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
-      out_stream << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
-      for(std::vector<long>::const_iterator i = gaps.begin();
-          i != gaps.end();
-          ++i) {
-        out_stream << *i << '\n';
-      }
-    }
-    
-  private:
-    std::ostream& out_stream;
-    std::pair<std::string, std::string> header_names;
-  };
 
   
   class _gap_iterator {
@@ -247,53 +218,6 @@ namespace {
     }
   }
 
-  void _push_ones(std::vector<long>& gaps, strand_t s, long ones) {
-    long one = S_REF == s ? -1 : 1;
-    for(; ones > 0; --ones) {
-      gaps.push_back(one);
-    }
-  }
-  
-  std::vector<long> _deltas_of_gaps(M_delta_entry const& de) {
-    std::vector<long> ret;
-    std::vector<M_range<M_profile_idx> >::const_iterator ref_i = de.ref_gaps.begin();
-    std::vector<M_range<M_profile_idx> >::const_iterator query_i = de.query_gaps.begin();
-    long pos = 0;
-    
-    while(1) {
-      if(ref_i != de.ref_gaps.end() && query_i != de.query_gaps.end()) {
-        if(ref_i->get_start() < query_i->get_start()) {
-          ret.push_back(-(ref_i->get_start() - pos));
-          _push_ones(ret, S_REF, ref_i->length() - 1);
-          pos = ref_i->get_end();
-          ++ref_i;
-        }
-        else {
-          ret.push_back(query_i->get_start() - pos);
-          _push_ones(ret, S_QUERY, query_i->length() - 1);
-          pos = query_i->get_end();
-          ++query_i;
-        }
-      }
-      else if(ref_i != de.ref_gaps.end()) {
-        ret.push_back(-(ref_i->get_start() - pos));
-        _push_ones(ret, S_REF, ref_i->length() - 1);
-        pos = ref_i->get_end();
-        ++ref_i;
-      }
-      else if(query_i != de.query_gaps.end()) {
-        ret.push_back(query_i->get_start() - pos);
-        _push_ones(ret, S_QUERY, query_i->length() - 1);
-        pos = query_i->get_end();
-        ++query_i;
-      }
-      else {
-        ret.push_back(0);
-        break;
-      }
-    }
-    return ret;
-  }
 
   void _update_pos_by_d_gap_strand(strand_t s, M_range<long> const& d_diff, _gd_state& gd) {
     if(S_REF == s) {
@@ -354,7 +278,7 @@ namespace {
     }
   }
   
-  void _generate_delta_alignment(_gd_state& gd, M_delta_builder& db, _delta_stream_writer& dsw) {
+  void _generate_delta_alignment(_gd_state& gd, M_delta_builder& db, M_delta_stream_writer& dsw) {
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > gr_gap_o = gd.profile_gaps.curr(gd.ref_profile_pos, gd.query_metaprofile_pos);
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > d_gap_o = gd.d_profile_gaps.curr(gd.d_profile_pos, gd.d_profile_pos);
 
@@ -570,7 +494,7 @@ namespace {
                        M_range<M_seq_idx> const& ref_seq,
                        M_profile const& query_profile,
                        M_range<M_seq_idx> const& query_seq,
-                       _delta_stream_writer& dsw) {
+                       M_delta_stream_writer& dsw) {
     /*
      * We know that both profiles overlap our delta entry in some way but we do not know if
      * where they overlap the delta entry, the delta entry still overlaps itself.  That is to say
@@ -755,7 +679,7 @@ namespace {
   void _translate_delta_with_profiles(M_profile const& left_profile,
                                       M_profile const& right_profile,
                                       M_delta_entry const& de,
-                                      _delta_stream_writer& dsw) {
+                                      M_delta_stream_writer& dsw) {
     /*
      * We know that the profiles correspond to the names in the delta entry but
      * we don't know if these profiles actually overlap the delta entry at all.
@@ -780,7 +704,7 @@ namespace {
   void _translate_delta(std::map<std::string, std::vector<M_profile> > const& left_profile_map,
                         std::map<std::string, std::vector<M_profile> > const& right_profile_map,
                         M_delta_stream& ds,
-                        _delta_stream_writer& dsw) {
+                        M_delta_stream_writer& dsw) {
     while(M_option<M_delta_entry> d = ds.next()) {
       std::map<std::string, std::vector<M_profile> >::const_iterator left_profiles_i = left_profile_map.find(d.value().header_names.first);
       std::map<std::string, std::vector<M_profile> >::const_iterator right_profiles_i = right_profile_map.find(d.value().header_names.second);      
@@ -823,7 +747,7 @@ namespace Para_mugsy {
     std::map<std::string, std::vector<M_profile> > left_profile_map = _profile_map_of_dir(left_dir);
     std::map<std::string, std::vector<M_profile> > right_profile_map = _profile_map_of_dir(right_dir);
 
-    _delta_stream_writer dsw(out_stream);
+    M_delta_stream_writer dsw(out_stream);
     
     for(std::vector<std::string>::const_iterator i = nucmer_list.begin();
         i != nucmer_list.end();
