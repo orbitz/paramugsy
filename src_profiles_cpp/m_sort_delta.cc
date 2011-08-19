@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <string>
 #include <algorithm>
 
 #include <m_option.hh>
@@ -9,14 +10,48 @@
 using namespace std;
 using namespace Para_mugsy;
 
+template <typename T, size_t N>
+size_t array_length(T const (&_)[N]) {
+  (void)_;
+  return N;
+}
+
+template <typename T>
+bool _less_than(T l_s, T l_e, T r_s, T r_e) {
+  while(l_s != l_e && r_s != r_e) {
+    if(*l_s < *r_s) {
+      return true;
+    }
+    else if(*l_s ==  *r_s) {
+      ++l_s;
+      ++r_s;
+    }
+    else {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 bool _sort_by_header(M_delta_entry const &l, M_delta_entry const &r) {
-  return (l.header_names.first < r.header_names.first ||
-          (l.header_names.first == r.header_names.first && l.header_names.second < r.header_names.second));
+  std::string l_array[] = {l.header_names.first, l.header_names.second};
+  std::string r_array[] = {r.header_names.first, r.header_names.second};
+
+  return _less_than(&l_array[0],
+                    &l_array[0] + array_length(l_array),
+                    &r_array[0],
+                    &r_array[0] + array_length(r_array));
 }
 
 bool _sort_inner(M_delta_entry const &l, M_delta_entry const &r) {
-  return (l.ref_range.get_start() < r.ref_range.get_start() ||
-          (l.ref_range.get_start() == r.ref_range.get_start() && l.query_range.get_start() < r.query_range.get_start()));
+  M_seq_idx l_array[] = {l.ref_range.get_start(), l.query_range.get_start(), l.ref_range.get_end(), l.query_range.get_end()};
+  M_seq_idx r_array[] = {r.ref_range.get_start(), r.query_range.get_start(), r.ref_range.get_end(), r.query_range.get_end()};
+
+  return _less_than(&l_array[0],
+                    &l_array[0] + array_length(l_array),
+                    &r_array[0],
+                    &r_array[0] + array_length(r_array));
 }
 
 
