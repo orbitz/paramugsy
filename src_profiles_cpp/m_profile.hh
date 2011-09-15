@@ -8,7 +8,6 @@
 
 #include <m_option.hh>
 #include <m_range.hh>
-#include <m_profile.hh>
 
 namespace Para_mugsy {
   class Profile_read_error : public std::exception {};

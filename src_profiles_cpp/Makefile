@@ -1,0 +1,52 @@
+OUTPUT = m_sort_delta m_translate
+
+CC = g++
+CPPFLAGS = -I.
+CXXFLAGS = -ggdb3 -ansi -pedantic -W -Wall -Wextra
+
+.PHONEY : all
+all : $(OUTPUT)
+
+m_sort_delta : m_delta.o m_sort_delta.o
+
+m_translate : m_delta.o m_delta_builder.o m_profile.o m_fileutils.o m_translate.o m_translate_main.o
+
+m_delta.o : m_delta.cc
+
+m_sort_delta.o : m_sort_delta.cc
+
+m_delta.cc : m_delta.hh
+
+m_delta.hh : m_option.hh m_range.hh m_profile.hh
+
+m_range.hh : m_option.hh m_direction.hh
+
+m_profile.hh : m_option.hh m_range.hh
+
+m_sort_delta.o : m_sort_delta.cc
+
+m_sort_delta.cc : m_option.hh m_delta.hh m_delta_stream_writer.hh
+
+m_delta_builder.o : m_delta_builder.cc
+
+m_delta_builder.cc : m_option.hh m_delta.hh m_metaprofile.hh m_delta_builder.hh
+
+m_metaprofile.hh : m_profile.hh
+
+m_delta_builder.hh : m_delta.hh m_metaprofile.hh
+
+m_fileutils.o : m_fileutils.cc
+
+m_fileutils.cc: m_fileutils.hh
+
+m_translate.o : m_translate.cc
+
+m_translate.cc : m_delta.hh m_delta_builder.hh m_profile.hh m_metaprofile.hh m_delta_stream_writer.hh m_translate.hh m_fileutils.hh
+
+m_translate_main.o : m_translate_main.cc
+
+m_translate_main.cc : m_fileutils.hh m_translate.hh
+
+.PHONY : clean
+clean :
+	-rm $(OUTPUT) *.o

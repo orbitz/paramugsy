@@ -17,14 +17,15 @@ size_t array_length(T const (&_)[N]) {
 }
 
 template <typename T>
-bool _less_than(T l_s, T l_e, T r_s, T r_e) {
-  while(l_s != l_e && r_s != r_e) {
-    if(*l_s < *r_s) {
+bool _less_than(T left_start, T left_end, T right_start, T right_end) {
+  while(left_start != left_end && right_start != right_end) {
+    cout << "left = " << *left_start << " right = " << *right_start << endl;
+    if(*left_start < *right_start) {
       return true;
     }
-    else if(*l_s ==  *r_s) {
-      ++l_s;
-      ++r_s;
+    else if(*left_start == *right_start) {
+      ++left_start;
+      ++right_start;
     }
     else {
       return false;
