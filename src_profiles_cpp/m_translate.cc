@@ -282,10 +282,12 @@ namespace {
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > gr_gap_o = gd.profile_gaps.curr(gd.ref_profile_pos, gd.query_metaprofile_pos);
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > d_gap_o = gd.d_profile_gaps.curr(gd.d_profile_pos, gd.d_profile_pos);
 
-//     std::cout << "------\n";
-//     std::cout << "ref_profile_pos = " << gd.ref_profile_pos << "\n";
-//     std::cout << "query_metaprofile_pos = " << gd.query_metaprofile_pos << "\n";
-//     std::cout << "d_profile_pos = " << gd.d_profile_pos << "\n";
+    // std::cout << "------\n";
+    // std::cout << "ref_profile_pos = " << gd.ref_profile_pos << "\n";
+    // std::cout << "query_metaprofile_pos = " << gd.query_metaprofile_pos << "\n";
+    // std::cout << "d_profile_pos = " << gd.d_profile_pos << "\n";
+    // std::cout << "gr_gap_o = " << static_cast<bool>(gr_gap_o) << "\n";
+    // std::cout << "d_gap_o = " << static_cast<bool>(d_gap_o) << "\n";
     if(gr_gap_o && d_gap_o) {
       std::pair<strand_t, M_range<M_profile_idx> > const& gr_gap = gr_gap_o.value();
       std::pair<strand_t, M_range<M_profile_idx> > const& d_gap = d_gap_o.value();
@@ -629,46 +631,48 @@ namespace {
                            query_start,
                            query_metaprofile);
 
-//         std::cout << "ref_profile\n";
-//         std::cout << ref_profile << "\n";
-//         std::cout << "ref_profile_sub\n";
-//         std::cout << ref_profile_sub << "\n";
-//         std::cout << "query_profile\n";
-//         std::cout << query_profile << "\n";
-//         std::cout << "query_profile_sub\n";
-//         std::cout << query_profile_sub << "\n";
-//         std::cout << "query_metaprofile gaps\n";
-//         for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_profile_gaps.begin();
-//             i != query_profile_gaps.end();
-//             ++i) {
-//           std::cout << "(" << i->get_start() << ", " << i->get_end() << ") ";
-//         }
-//         std::cout << "\n\n";
-//         std::cout << "d_ref_profile\n";
-//         std::cout << d_ref_profile << "\n";        
+        // std::cout << "ref_profile\n";
+        // std::cout << ref_profile << "\n";
+        // std::cout << "ref_profile_sub\n";
+        // std::cout << ref_profile_sub << "\n";
+        // std::cout << "query_profile\n";
+        // std::cout << query_profile << "\n";
+        // std::cout << "query_profile_sub\n";
+        // std::cout << query_profile_sub << "\n";
+        // std::cout << "query_metaprofile gaps\n";
+        // for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_profile_gaps.begin();
+        //     i != query_profile_gaps.end();
+        //     ++i) {
+        //   std::cout << "(" << i->get_start() << ", " << i->get_end() << ") ";
+        // }
+        // std::cout << "\n\n";
+        // std::cout << "d_ref_profile\n";
+        // std::cout << d_ref_profile << "\n";        
 
-//         std::cout << "d_query_profile\n";
-//         std::cout << d_query_profile << "\n";
+        // std::cout << "d_query_profile\n";
+        // std::cout << d_query_profile << "\n";
 
-//         std::cout << "d_ref_profile_sub\n";
-//         std::cout << d_ref_profile_sub << "\n";
+        // std::cout << "d_ref_profile_sub\n";
+        // std::cout << d_ref_profile_sub << "\n";
 
-//         std::cout << "d_query_profile_sub\n";
-//         std::cout << d_query_profile_sub << "\n";
+        // std::cout << "d_query_profile_sub\n";
+        // std::cout << d_query_profile_sub << "\n";
 
-//         std::cout << "ref_start = " << ref_start << "\n";
-//         std::cout << "query_start = " << query_start << "\n";
-//         std::cout << "d_profile_pos = " << d_profile_pos << "\n";
-//         std::cout << "d_profile_end = " << d_profile_end << "\n\n";
+        // std::cout << "ref_start = " << ref_start << "\n";
+        // std::cout << "query_start = " << query_start << "\n";
+        // std::cout << "d_profile_pos = " << d_profile_pos << "\n";
+        // std::cout << "d_profile_end = " << d_profile_end << "\n\n";
         
-        //std::cout << "Looping...\n";
-        while(!gd.profile_gaps.at_end() && !gd.profile_gaps.at_end()) {
+        // std::cout << "Looping...\n";
+        while(!gd.profile_gaps.at_end() || !gd.d_profile_gaps.at_end()) {
           _generate_delta_alignment(gd, db, dsw);
         }
         /*
          * And we do one more to catch the ending set
          */
-        //std::cout << "Final call...\n";
+        // std::cout << "Final call...\n";
+        // std::cout << "!gd.profile_gaps.at_end() = " << !gd.profile_gaps.at_end() << "\n";
+        // std::cout << "!gd.d_profile_gaps.at_end() = " << !gd.d_profile_gaps.at_end() << "\n";
         _generate_delta_alignment(gd, db, dsw);
       }
     }

@@ -19,7 +19,6 @@ size_t array_length(T const (&_)[N]) {
 template <typename T>
 bool _less_than(T left_start, T left_end, T right_start, T right_end) {
   while(left_start != left_end && right_start != right_end) {
-    cout << "left = " << *left_start << " right = " << *right_start << endl;
     if(*left_start < *right_start) {
       return true;
     }
@@ -68,6 +67,7 @@ void sort_delta_entries(vector<M_delta_entry> &delta_entries) {
       s_start = s_end;
     }
   }
+  sort(s_start, delta_entries.end(), _sort_inner);
 }
 
 int main() {
