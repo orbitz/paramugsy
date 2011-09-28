@@ -1,6 +1,8 @@
 #ifndef M_RANGE_HH
 #define M_RANGE_HH
 
+#include <algorithm>
+
 #include <m_option.hh>
 #include <m_direction.hh>
 
@@ -9,14 +11,22 @@ namespace Para_mugsy {
   template <typename T>
   class M_range {
   public:
-    M_range(T const& s, T const& e) : start(s), end(e) {}
-    M_range(M_range<T> const& range) : start(range.start), end(range.end) {}
+    M_range(T const &s, T const& e) : start(s), end(e) {}
+    M_range(M_range<T> const &range) : start(range.start), end(range.end) {}
 
-    M_range<T>& operator=(M_range<T> const& rhs) {
-      start = rhs.start;
-      end = rhs.end;
+    M_range<T> &operator=(M_range<T> const& rhs) {
+      M_range<T> copy(rhs);
+      swap(copy);
       return *this;
     }
+
+    void swap(M_range<T> &rhs) {
+      using std::swap;
+
+      swap(start, rhs.start);
+      swap(end, rhs.end);
+    }
+      
     
     T get_start() const { return start; }
     T get_end() const { return end; }
@@ -37,6 +47,11 @@ namespace Para_mugsy {
     T end;
     
   };
+
+  template <typename T>
+  void swap(M_range<T> &lhs, M_range<T> &rhs) {
+    lhs.swap(rhs);
+  }
 
   template <typename T>
   M_range<T> make_forward(M_range<T> const& r) {
@@ -79,6 +94,17 @@ namespace Para_mugsy {
     return std::make_pair(r.get_start(), r.get_end());
   }
 
+  inline M_range<long> of_maf(long start, long size, long src_size, M_direction direction) {
+    switch(direction) {
+    case D_FORWARD:
+      return M_range<long>(start + 1, start + size);
+    case D_REVERSE:
+      return M_range<long>(src_size - start, src_size - start - (size - 1));
+    }
+
+    throw std::exception();
+  }
+  
 }
 
 #endif

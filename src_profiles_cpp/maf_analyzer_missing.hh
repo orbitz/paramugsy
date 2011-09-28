@@ -15,8 +15,13 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <algorithm>
+
+#include <maf_read_stream.hh>
 
 namespace Para_mugsy {
+  class Maf_analyzer_missing_entry;
+  
   typedef std::map<std::string, std::vector<Maf_analyzer_missing_entry> > Maf_genome_map;
   /*
    * A report is the same as a genome map but it will have the inverse information
@@ -25,11 +30,31 @@ namespace Para_mugsy {
   
   class Maf_analyzer_missing_entry {
   public:
+    Maf_analyzer_missing_entry() :
+      range_(-1, -1)
+    {}
+
+    Maf_analyzer_missing_entry(Maf_analyzer_missing_entry const &rhs) :
+      genomes_(rhs.genomes_), range_(rhs.range_)
+    {}
+
+    Maf_analyzer_missing_entry &operator=(Maf_analyzer_missing_entry const &rhs) {
+      Maf_analyzer_missing_entry copy(rhs);
+      swap(copy);
+      return *this;
+    }
+
+    void swap(Maf_analyzer_missing_entry &rhs) {
+      using std::swap;
+      swap(genomes_, rhs.genomes_);
+      swap(range_, rhs.range_);
+    }
+    
     void set_range(M_range<long> const &range) {
       range_ = range;
     }
 
-    M_range<long> range() const {
+    M_range<long> const &range() const {
       return range_;
     }
 
@@ -58,7 +83,8 @@ namespace Para_mugsy {
     Maf_missing_report report() const;
     
   private:
-    Maf_genome_map genome_map;
+    Maf_genome_map genome_map_;
+    std::map<std::string, long> genome_sizes_;
   };
 }
  
