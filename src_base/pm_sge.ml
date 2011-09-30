@@ -354,7 +354,7 @@ let run_mugsy_with_profiles options priority out_dir left_maf right_maf nucmer_d
 	       out_dir 
 	       seqs_list 
 	       maf_list 
-	       options.minlength 
+	       options.minlength
 	       options.distance
 	     ; Printf.sprintf 
 	       "mugsy_profiles untranslate -profile_paths_list %s -in_maf %s/mugsy/mugsy.maf -out_maf %s" 

@@ -10,9 +10,9 @@ namespace Para_mugsy {
     /*
      * Drop all comments and empty lines
      */
-    while(std::getline(istream_, line) && '#' != line[0] && !line.empty());
-    
-    if(std::getline(istream_, line)) {
+    while(std::getline(istream_, line) && ('#' == line[0] || line.empty()));
+
+    if(!istream_.eof()) {
       if('a' == line[0]) {
         std::istringstream iss(line);
         char dummy;
@@ -22,7 +22,7 @@ namespace Para_mugsy {
 
         std::string score;
         std::string label;
-        
+
         if(iss >> score >> label) {
           Maf_entry maf_entry(score, label);
           

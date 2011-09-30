@@ -94,14 +94,6 @@ let rec untranslate_profiles overlap text = function
 	  else
 	    String.map ~f:complement (expand_text seq_text text)
 	in
-	Printf.eprintf "\n\n";
-	M_profile.print stderr p;
-	Printf.eprintf "overlap = (%d, %d)\n" (M_range.get_start overlap) (M_range.get_end overlap);
-	Printf.eprintf "p.p_range = (%d, %d)\n" (M_range.get_start p.p_range) (M_range.get_end p.p_range);
-	Printf.eprintf "p_sub.p_range = (%d, %d)\n" (M_range.get_start p_sub.p_range) (M_range.get_end p_sub.p_range);
-	Printf.eprintf "real_range = (%d, %d)\n" (M_range.get_start real_range) (M_range.get_end real_range);
-	Printf.eprintf "(start, size) = %d %d\n" start size;
-	Printf.eprintf "dir = %s\n" (M_profile_stream.string_of_direction direction);
 	[< 'Printf.sprintf "s %s %d %d %s %d %s"
 	    p.p_seq_name
 	    start
@@ -128,9 +120,6 @@ let untranslate_score profile_map score_line =
       ~direction:d
   in
   let profiles = String_map.find name profile_map in
-  Printf.eprintf "\n\n";
-  Printf.eprintf "%s %d %d %s %d\n" name start size (M_profile_stream.string_of_direction d) src_size;
-  Printf.eprintf "overlap = (%d, %d)\n" (M_range.get_start overlap) (M_range.get_end overlap);
   untranslate_profiles overlap text profiles
 
   

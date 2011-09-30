@@ -23,7 +23,11 @@ int main(int argc, char **argv) {
   for(Maf_missing_report::const_iterator i = missing_report.begin();
       i != missing_report.end();
       ++i) {
-    std::cout << "Genome: " << i->first << " Count: " << i->second.size() << std::endl;
+    for(std::vector<Maf_analyzer_missing_entry>::const_iterator missing_i = i->second.begin();
+        missing_i != i->second.end();
+        ++missing_i) {
+      std::cout << i->first << "\t" << missing_i->range().get_start() << "\t" << missing_i->range().get_end() << std::endl;
+    }
   }
 
   return 0;
