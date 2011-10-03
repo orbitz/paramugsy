@@ -102,13 +102,15 @@ namespace {
         missing_entry.set_range(M_range<long>(1, genome_missing[0].range().get_end() - 1));
         report_missing.push_back(missing_entry);
       }
-      for(Missing_vector::const_iterator i = genome_missing.begin() + 1;
-          i != genome_missing.end() - 1;
-          ++i) {
-        Maf_analyzer_missing_entry missing_entry;
-        missing_entry.set_range(M_range<long>((i - 1)->range().get_end() + 1,
-                                              i->range().get_start() - 1));
-        report_missing.push_back(missing_entry);
+      if(genome_missing.size() > 1) {
+        for(Missing_vector::const_iterator i = genome_missing.begin() + 1;
+            i != genome_missing.end() - 1;
+            ++i) {
+          Maf_analyzer_missing_entry missing_entry;
+          missing_entry.set_range(M_range<long>((i - 1)->range().get_end() + 1,
+                                                i->range().get_start() - 1));
+          report_missing.push_back(missing_entry);
+        }
       }
       if((genome_missing.end() - 1)->range().get_end() < genome_size) {
         Maf_analyzer_missing_entry missing_entry;
