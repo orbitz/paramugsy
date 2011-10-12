@@ -144,7 +144,16 @@ namespace Para_mugsy {
     }
   }
 
-  M_option<M_profile> subset_profile(M_profile const& p, M_profile_idx s, M_profile_idx e) {
+
+  /*
+   * Takes profile coordinates and returns a subset of the profile that corresponds to those coordinates.
+   * Right now gaps ARE NOT translate back into zero index because the user of this code is legacy and
+   * depends on that, although this should be changed soon.
+   *
+   * This will return None in the case that there is nothing but gaps in the range of s and e.
+   * If s and e are not in ascending order they will be swapped.
+   */
+  M_option<M_profile> subset_profile(M_profile const &p, M_profile_idx s, M_profile_idx e) {
     if(s <= 0 || p.p_length < s || e <= 0 || p.p_length < e) {
       throw Profile_idx_out_of_range();
     }
@@ -152,54 +161,50 @@ namespace Para_mugsy {
     if(s > e) {
       std::swap(s, e);
     }
-    
+
+    M_range<M_profile_idx> profile_sub_range(s, e);
+    std::vector<M_range<M_profile_idx> > gaps;
     for(std::vector<M_range<M_profile_idx> >::const_iterator i = p.p_gaps.begin();
         i != p.p_gaps.end();
         ++i) {
-      if(i->get_start() <= s && s <= i->get_end()) {
-        s = i->get_end() + 1;
-      }
-
-      if(i->get_start() <= e && e <= i->get_end()) {
-        e = i->get_start() - 1;
+      if(M_option<M_range<M_profile_idx> > o = overlap(*i, profile_sub_range)) {
+        gaps.push_back(o.value());
       }
     }
 
-    if(e < s) {
-      return M_option<M_profile>();
+    if(!gaps.empty()) {
+      if(gaps.size() == 1 && gaps[0].get_start() == s && gaps[0].get_end() == e) {
+        /*
+         * If the entire range is 1 gap, return empty
+         */
+        return M_option<M_profile>();
+      }
+
+      /*
+       * Adjust the profile indecies where the actual sequences will start
+       */
+      if(gaps[0].get_start() == s) {
+        s = gaps[0].get_end() + 1;
+      }
+
+      if(gaps[gaps.size() - 1].get_end() == e) {
+        e = gaps[gaps.size() - 1].get_start() - 1;
+      }
     }
-    else {
-      return M_option<M_profile>(subset_seq(p, seq_idx_of_profile_idx(p, s).value(), seq_idx_of_profile_idx(p, e).value()));
-    }
+
+    return M_option<M_profile>(M_profile(p.p_major_name,
+                                         p.p_minor_name,
+                                         p.p_seq_name,
+                                         M_range<M_seq_idx>(seq_idx_of_profile_idx(p, s).value(),
+                                                            seq_idx_of_profile_idx(p, e).value()),
+                                         gaps));
+                                         
   }
-  
-  M_profile subset_seq(M_profile const& p, M_seq_idx s, M_seq_idx e) {
-    if(!p.p_range.contains(s) || !p.p_range.contains(e)) {
-      throw Seq_idx_out_of_range();
-    }
 
-    M_range<M_seq_idx> dir_test(s, e);
-    if(p.p_range.get_direction() != dir_test.get_direction()) {
-      std::swap(s, e);
-    }
-
-    M_range<M_profile_idx> profile_range(profile_idx_of_seq_idx(p, s),
-                                         profile_idx_of_seq_idx(p, e));
-
-    std::vector<M_range<M_profile_idx> > gaps_new;
-    for(std::vector<M_range<M_profile_idx> >::const_iterator i = p.p_gaps.begin();
-        i != p.p_gaps.end();
-        ++i) {
-      if(M_option<M_range<M_profile_idx> > o = overlap(*i, profile_range)) {
-        gaps_new.push_back(o.value());
-      }
-    }
-
-    return M_profile(p.p_major_name,
-                     p.p_minor_name,
-                     p.p_seq_name,
-                     M_range<M_seq_idx>(s, e),
-                     gaps_new);
+  M_profile subset_seq(M_profile const &p, M_seq_idx s, M_seq_idx e) {
+    return subset_profile(p,
+                          profile_idx_of_seq_idx(p, s),
+                          profile_idx_of_seq_idx(p, e)).value();
   }
 
 }
