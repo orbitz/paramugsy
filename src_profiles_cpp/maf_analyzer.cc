@@ -19,10 +19,12 @@ int main(int argc, char **argv) {
   }
 
   Maf_missing_report missing_report = maf_missing.report();
-
+  // Maf_missing_report const &missing_report = maf_missing.genome_map();
+  
   for(Maf_missing_report::const_iterator i = missing_report.begin();
       i != missing_report.end();
       ++i) {
+    std::cout << "--------\n";
     for(std::vector<Maf_analyzer_missing_entry>::const_iterator missing_i = i->second.begin();
         missing_i != i->second.end();
         ++missing_i) {

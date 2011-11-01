@@ -37,6 +37,15 @@ namespace Para_mugsy {
 
     M_range<T> reverse() const { return M_range(end, start); }
 
+    M_range<T> abs() const {
+      switch(get_direction()) {
+      case D_REVERSE:
+        return reverse();
+      default:
+        return *this;
+      }
+    }
+    
     bool contains(T const& v) const {
       M_range<T> r = make_forward(*this);
       return r.get_start() <= v && v <= r.get_end();
@@ -103,6 +112,12 @@ namespace Para_mugsy {
     }
 
     throw std::exception();
+  }
+
+  template <typename T>
+  std::ostream &operator<<(std::ostream &out, M_range<T> const &range) {
+    out << "(" << range.get_start() << ", " << range.get_end() << ")";
+    return out;
   }
   
 }

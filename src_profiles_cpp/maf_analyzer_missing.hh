@@ -80,6 +80,8 @@ namespace Para_mugsy {
   public:
     void add(Maf_entry const &maf_entry);
 
+    Maf_genome_map const &genome_map() { return genome_map_; }
+    
     Maf_missing_report report() const;
     
   private:

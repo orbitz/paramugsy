@@ -2,7 +2,7 @@ OUTPUT = m_sort_delta m_translate maf_analyzer
 
 CC = g++
 CPPFLAGS = -I.
-CXXFLAGS = -ggdb3 -ansi -pedantic -W -Wall -Wextra
+CXXFLAGS = -O3 -ansi -pedantic -W -Wall -Wextra
 
 .PHONEY : all
 all : $(OUTPUT)

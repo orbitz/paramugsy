@@ -1,12 +1,12 @@
 #ifndef MAF_READ_STREAM_HH
 #define MAF_READ_STREAM_HH
-
 #include <istream>
 #include <sstream>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <exception>
+#include <cassert>
 
 #include <m_option.hh>
 #include <m_direction.hh>
