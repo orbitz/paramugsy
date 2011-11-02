@@ -63,7 +63,7 @@ void sort_delta_entries(vector<M_delta_entry> &delta_entries) {
       s_end != delta_entries.end();
       ++s_end) {
     if(s_start->header_names != s_end->header_names) {
-      sort(s_start, s_end - 1, _sort_inner);
+      sort(s_start, s_end, _sort_inner);
       s_start = s_end;
     }
   }

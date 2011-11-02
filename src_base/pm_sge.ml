@@ -336,12 +336,6 @@ let run_mugsy_with_profiles options priority out_dir left_maf right_maf nucmer_d
   let cmds = [ Printf.sprintf "echo Start-Multi %d %s `date %s`" priority out_dir "+%Y%m%d%H%M%S"
 	     ; Printf.sprintf "mugsy_profiles make -in_maf %s -out_dir %s -basename l" left_maf profile_left
 	     ; Printf.sprintf "mugsy_profiles make -in_maf %s -out_dir %s -basename r" right_maf profile_right
-	     (* ; Printf.sprintf *)
-	     (*   "mugsy_profiles translate -profiles_left %s -profiles_right %s -nucmer_list %s -out_delta %s/profile.delta" *)
-	     (*   profile_left *)
-	     (*   profile_right *)
-	     (*   nucmer_list *)
-	     (*   out_dir *)
 	     ; Printf.sprintf
 	       "m_translate %s %s %s %s/profile.delta"
 	       profile_left

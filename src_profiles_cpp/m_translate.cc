@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <fstream>
 #include <ostream>
 
@@ -189,6 +187,24 @@ namespace {
     return ret;
   }
 
+  template <typename T>
+  bool _range_sort_comparator(M_range<T> const &left, M_range<T> const &right) {
+    return left.abs().get_start() < right.abs().get_start();
+  }
+
+  template <typename T>
+  bool _range_search_comparator(M_range<T> const &left, M_range<T> const &right) {
+    return left.abs().get_end() < right.abs().get_start();
+  }
+
+  bool _profile_sort_comparator(M_profile const &left, M_profile const &right) {
+    return _range_sort_comparator(left.p_range, right.p_range);
+  }
+
+  bool _profile_search_comparator(M_profile const &left, M_profile const &right) {
+    return _range_search_comparator(left.p_range, right.p_range);
+  }
+
   std::map<std::string, std::vector<M_profile> > _profile_map_of_dir(std::string const &dir) {
     std::vector<std::string> files = _list_dir_idx(dir);
     std::map<std::string, std::vector<M_profile> > ret;
@@ -198,6 +214,16 @@ namespace {
         ++i) {
       M_profile profile = read_profile_file(true, *i);
       ret[profile.p_seq_name].push_back(profile);
+    }
+
+    /*
+     * Sort all of the vectors so we can easily find the intervals we want
+     * to walk over.
+     */
+    for(std::map<std::string, std::vector<M_profile> >::iterator i = ret.begin();
+        i != ret.end();
+        ++i) {
+      std::sort(i->second.begin(), i->second.end(), _profile_sort_comparator);
     }
     return ret;
   }
@@ -637,7 +663,7 @@ namespace {
       M_range<M_seq_idx> const &query_overlap = query_overlap_o.value();
 
       M_delta_entry n_de = _reverse_if_needed(de, left_profile);
-
+      
       _generate_delta(n_de, left_profile, ref_overlap, right_profile, query_overlap, dsw);
     }
   }
@@ -647,6 +673,18 @@ namespace {
                         std::map<std::string, std::vector<M_profile> > const &right_profile_map,
                         M_delta_stream &ds,
                         M_delta_stream_writer &dsw) {
+    /*
+     * In order to perform the lower_bound check we need a fake profile that will hold
+     * what's in the delta entry.  So we'll create fake profiles here and then
+     * fill them in for each lower_bound run since we know it will just be checking
+     * p_range
+     */
+    M_profile tmp_profile("",
+                          "",
+                          "",
+                          M_range<M_seq_idx>(0, 0),
+                          std::vector<M_range<M_profile_idx> >());
+    
     while(M_option<M_delta_entry> d = ds.next()) {
       std::map<std::string, std::vector<M_profile> >::const_iterator left_profiles_i = left_profile_map.find(d.value().header_names.first);
       std::map<std::string, std::vector<M_profile> >::const_iterator right_profiles_i = right_profile_map.find(d.value().header_names.second);      
@@ -655,24 +693,37 @@ namespace {
         std::vector<M_profile> const &left_profiles = left_profiles_i->second;
         std::vector<M_profile> const &right_profiles = right_profiles_i->second;
 
+        M_delta_entry const &delta_entry = d.value();
+
         /*
-         * For every combinatino of left and right profile that are for our genome
-         * we call try to translate any overlapping area between the profiles and
-         * the delta.
-         *
-         * We don't know which of the profile combinations will overlap,
-         * _translate_delta_profiles will determine that, here we are simply
-         * calling for every combination.  It is guaranteed that at least one
-         * combination of profiles will overlap the delta entry but we don't know
-         * which.  Some kind of interval tree might be a useful optimization here.
+         * The vector or profiles are sorted based on the starting position of the range
+         * so we can use lower_bound to efficiently find where the range of profiles
+         * we will translate starts.  Then we walk the iterator until the sequences no
+         * longer overlap
          */
-        for(std::vector<M_profile>::const_iterator left_i = left_profiles.begin();
-            left_i != left_profiles.end();
+        tmp_profile.p_range = M_range<M_seq_idx>(delta_entry.ref_range.abs().get_start(),
+                                                 delta_entry.ref_range.abs().get_start());
+        std::vector<M_profile>::const_iterator left_start = std::lower_bound(left_profiles.begin(),
+                                                                             left_profiles.end(),
+                                                                             tmp_profile,
+                                                                             _profile_search_comparator);
+
+
+        tmp_profile.p_range = M_range<M_seq_idx>(delta_entry.query_range.abs().get_start(),
+                                                 delta_entry.query_range.abs().get_start());
+        std::vector<M_profile>::const_iterator right_start = std::lower_bound(right_profiles.begin(),
+                                                                              right_profiles.end(),
+                                                                              tmp_profile,
+                                                                              _profile_search_comparator);
+
+        
+        for(std::vector<M_profile>::const_iterator left_i = left_start;
+            left_i != left_profiles.end() && overlap(left_i->p_range, delta_entry.ref_range);
             ++left_i) {
-          for(std::vector<M_profile>::const_iterator right_i = right_profiles.begin();
-              right_i != right_profiles.end();
+          for(std::vector<M_profile>::const_iterator right_i = right_start;
+              right_i != right_profiles.end() && overlap(right_i->p_range, delta_entry.query_range);
               ++right_i) {
-            _translate_delta_with_profiles(*left_i, *right_i, d.value(), dsw);
+            _translate_delta_with_profiles(*left_i, *right_i, delta_entry, dsw);
           }
         }
       }
