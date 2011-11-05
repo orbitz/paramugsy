@@ -4,6 +4,19 @@ open Ort
 open Ort.Function
 open Lwt
 
+type sge_options = { priority : int
+		   ; template_file : Fileutils.file_path
+		   ; tmp_dir : Fileutils.file_path
+		   ; script_dir : Fileutils.file_path
+		   ; exec_queue : string
+		   ; data_queue : string
+		   ; out_dir : Fileutils.file_path
+		   }
+
+type copy_files = (Fileutils.file_path * Fileutils.file_path)
+
+type job_id = string
+
 type rsync_opts = { rsync_opts : string
 		  ; rsync_user : string
 		  ; rsync_host : string
@@ -120,13 +133,32 @@ let qsub ?(wait = true) ?(verbose = true) ?(priority = 0) ~template_file ~script
  * this uses rsync so rsync_options are required.
  * A datasync queue is used for the transfers. -- Currently this is ignored
  *)
-let qsub_with_datasync ?(wait = true) ?(verbose = true) ?(priority = 0) ~template_file ~script_dir ~exec_queue ~data_queue ~in_files ~out_files cmds =
-  let rsync_of_in_file (src, dst) = Printf.sprintf "sync_to.sh %s %d %s %s" data_queue priority src dst
+let qsub_with_datasync ?(wait = true) ?(verbose = true) ~options ~in_files ~out_files cmds =
+  let rsync_of_in_file (src, dst) = 
+    Printf.sprintf 
+      "sync_to.sh %s %d %s %s" 
+      options.data_queue 
+      options.priority 
+      src 
+      dst
   in
-  let rsync_of_out_file (src, dst) = Printf.sprintf "sync_from.sh %s %d %s %s" data_queue priority src dst
+  let rsync_of_out_file (src, dst) = 
+    Printf.sprintf 
+      "sync_from.sh %s %d %s %s" 
+      options.data_queue 
+      options.priority 
+      src 
+      dst
   in
   let in_file_cmds = Std.List.fold_left ~f:(fun a e -> (rsync_of_in_file e)::a) ~init:[] in_files in
   let out_file_cmds = Std.List.fold_left ~f:(fun a e -> (rsync_of_out_file e)::a) ~init:[] out_files in
   let cmds = in_file_cmds @ cmds @ out_file_cmds in
-  qsub ~wait:wait ~verbose:verbose ~priority:priority ~template_file:template_file ~script_dir:script_dir ~queue:exec_queue cmds
+  qsub 
+    ~wait:wait 
+    ~verbose:verbose 
+    ~priority:options.priority 
+    ~template_file:options.template_file 
+    ~script_dir:options.script_dir 
+    ~queue:options.exec_queue 
+    cmds
 
