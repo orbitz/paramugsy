@@ -77,6 +77,14 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
       right_maf 
       (Fileutils.join [base_dir; Fileutils.basename right_maf ^ Global_state.make_ref ()])
   in
+  lwt nucmer_deltas_copied=
+    Lwt_list.map_s
+      (fun f -> 
+	Copy_file.copy_file
+	  f
+	  (Fileutils.join [base_dir; Fileutils.basename f]))
+      nucmer_deltas
+  in
   let profiles_left = Fileutils.join [base_dir; "profiles-l"] in
   let profiles_right = Fileutils.join [base_dir; "profiles-r"] in
   let nucmer_file_list = Fileutils.join [base_dir; "nucmer.list"] in
@@ -84,7 +92,7 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
   let maf_file_list = Fileutils.join [base_dir; "maf.list"] in
   let untranslate_file_list = Fileutils.join [base_dir; "untranslate.list"] in
   let untranslate_maf = Fileutils.join [base_dir; "untranslated.maf"] in
-  write_lines nucmer_deltas nucmer_file_list;
+  write_lines nucmer_deltas_copied nucmer_file_list;
   write_lines
     [ Fileutils.join [profiles_left; "l.fasta"]
     ; Fileutils.join [profiles_right; "r.fasta"]
