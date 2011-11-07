@@ -121,7 +121,7 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
 		 ; Printf.sprintf "echo End-Multi %d %s `date %s`" options.Pm_sge_utils.priority base_dir "+%Y%m%d%H%M%S"
 		 ]
   in
-  let in_files = [(base_dir, base_dir)] in
+  let in_files = [(base_dir, Fileutils.dirname base_dir)] in
   let out_files = [(untranslate_maf, Fileutils.dirname untranslate_maf)] in
   lwt job_id = 
     Pm_sge_utils.qsub_with_datasync
@@ -135,7 +135,36 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
 	     ; mugsy_maf = untranslate_maf
 	     }
   
-
+let run_fake_mugsy options in_fasta =
+  let node_name = Global_state.make_ref () in
+  let base_dir = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name] in
+  lwt _ = Copy_file.mkdir_p base_dir in
+  lwt in_fasta_copied = 
+    Copy_file.copy_file 
+      in_fasta 
+      (Fileutils.join [base_dir; Fileutils.basename in_fasta])
+  in
+  let out_maf = Fileutils.join [base_dir; "fake_mugsy.maf"] in
+  let commands = [Printf.sprintf
+		     "mugsy_profiles fasta_to_maf -in_fasta %s -out_maf %s"
+		     in_fasta
+		     out_maf
+		 ]
+  in
+  let in_files = [(base_dir, Fileutils.basename base_dir)] in
+  let out_files = in_files in
+  lwt job_id = 
+    Pm_sge_utils.qsub_with_datasync
+      ~options:options
+      ~wait:false
+      ~in_files:in_files
+      ~out_files:out_files
+      commands
+  in
+  Lwt.return { job_id = job_id
+	     ; mugsy_maf = out_maf
+	     }  
+  
 
 let wait_on_mugsy_job mugsy_job =
   Pm_sge_utils.wait_on_job_id mugsy_job.job_id >>= fun _ -> Lwt.return mugsy_job

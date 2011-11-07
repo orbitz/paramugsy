@@ -21,4 +21,6 @@ val run_mugsy_with_profiles :
   Fileutils.file_path list ->
   mugsy_job Lwt.t
 
+val run_fake_mugsy : Pm_sge_utils.sge_options -> Fileutils.file_path -> mugsy_job Lwt.t
+
 val wait_on_mugsy_job : mugsy_job -> mugsy_job Lwt.t

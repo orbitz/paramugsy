@@ -35,13 +35,13 @@ let run_nucmer sge_options sequences =
       ref_in
       query_in
       base_dir
-      sge_options.Pm_sge_utils.tmp_dir
+      base_dir
       basename
       basename
       basename
   in
-  let in_files = [(base_dir, base_dir)] in
-  let out_files = [(base_dir, Fileutils.dirname base_dir)]in
+  let in_files = [(base_dir, Fileutils.dirname base_dir)]in
+  let out_files = in_files in
   let commands =
     List.fold_left
       ~f:(fun acc s ->

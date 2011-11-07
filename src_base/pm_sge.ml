@@ -106,17 +106,21 @@ let rewrite_sequences sequences tmp_dir =
   Shell.mkdir_p tmp_dir;
   List.map ~f:rewrite_sequence sequences
 
+let searches left_seqs right_seqs =
+  let inner_fold acc e =
+    List.fold_left
+      ~f:(fun acc' e' ->
+	(e, e')::acc')
+      ~init:acc
+      right_seqs
+  in
+  List.fold_left
+    ~f:inner_fold
+    ~init:[]
+    left_seqs
 
-let searches sequences =
-  let rec search s = function
-    | [] -> [< >]
-    | x::xs -> [< '(s, x); search s xs >]
-  in
-  let rec search_all = function
-    | [] | [_] -> [< >]
-    | x::xs -> [< search x xs; search_all xs >]
-  in
-  search_all sequences
+let basename_of_search (r, q) =
+  (Fileutils.basename r, Fileutils.basename q)
 
 let sge_options_of_options priority options =
   { Pm_sge_utils.priority = priority
@@ -133,13 +137,10 @@ let sge_options_of_options priority options =
  *)
 let rec create_nucmers depth = function
   | H_taxonomic_unit (l, r) -> begin
-    let sequences = 
-      List.append 
-	(Mugsy_guide_tree.list_of_guide_tree l)
-	(Mugsy_guide_tree.list_of_guide_tree r)
-    in
-    let results = Seq.map ~f:(fun s -> (depth, s)) (searches sequences) in
-    [< results; create_nucmers (depth + 1) l; create_nucmers (depth + 1) r >]
+    let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
+    let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
+    let results = List.map ~f:(fun s -> (depth, s)) (searches left_seqs right_seqs) in
+    [< Seq.of_list results; create_nucmers (depth + 1) l; create_nucmers (depth + 1) r >]
   end
   | Taxonomic_unit _ ->
     [< >]
@@ -165,7 +166,7 @@ let run_nucmer_chunks options nucmer_chunks =
       in
       let map_accum' =
 	List.fold_left
-	  ~f:(fun acc job -> Tuple_map.add job.Pm_sge_nucmer.search_files job acc)
+	  ~f:(fun acc job -> Tuple_map.add (basename_of_search job.Pm_sge_nucmer.search_files) job acc)
 	  ~init:map_accum
 	  jobs
       in
@@ -175,9 +176,9 @@ let run_nucmer_chunks options nucmer_chunks =
 
 let wait_on_nucmer_jobs nucmer_job_map searches =
   let jobs = 
-    Seq.map 
-      ~f:(fun k -> Tuple_map.find k nucmer_job_map) 
-      searches |> Seq.to_list
+    List.map 
+      ~f:(fun k -> Tuple_map.find (basename_of_search k) nucmer_job_map) 
+      searches
   in
   Pm_sge_nucmer.wait_on_nucmer_jobs jobs
 
@@ -205,6 +206,13 @@ let run_mugsy_with_profiles_and_wait options depth left_maf right_maf nucmer_del
   in
   Pm_sge_mugsy.wait_on_mugsy_job mugsy_job
 
+let run_fake_mugsy_and_wait options depth sequence =
+  lwt mugsy_job =
+    Pm_sge_mugsy.run_fake_mugsy
+      (sge_options_of_options depth options)
+      sequence
+  in
+  Pm_sge_mugsy.wait_on_mugsy_job mugsy_job
 
 let rec run_mugsy_jobs options depth nucmer_job_map = function
   | H_taxonomic_unit (l, r) as subtree -> begin
@@ -215,20 +223,25 @@ let rec run_mugsy_jobs options depth nucmer_job_map = function
 	depth 
 	(List.length sequences)
     in
-    if List.length sequences > options.seqs_per_mugsy then
+    if List.length sequences <= options.seqs_per_mugsy then
       process_mugsy_leaf options depth nucmer_job_map (l, r)
     else
       process_mugsy_internal options depth nucmer_job_map (l, r)
   end
-  | Taxonomic_unit _ ->
-    raise (Failure "Should never get here")
+  | Taxonomic_unit sequence ->
+    run_fake_mugsy_and_wait
+      options
+      depth
+      sequence
 and process_mugsy_leaf options depth nucmer_job_map (l, r) =
+  let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
+  let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
   let sequences = 
     List.append
-      (Mugsy_guide_tree.list_of_guide_tree l)
-      (Mugsy_guide_tree.list_of_guide_tree r)
+      left_seqs
+      right_seqs
   in
-  lwt nucmer_jobs = wait_on_nucmer_jobs nucmer_job_map (searches sequences) in
+  lwt nucmer_jobs = wait_on_nucmer_jobs nucmer_job_map (searches left_seqs right_seqs) in
   let nucmer_mafs =
     List.map
       ~f:(fun nucmer -> nucmer.Pm_sge_nucmer.output_maf)
@@ -240,14 +253,11 @@ and process_mugsy_leaf options depth nucmer_job_map (l, r) =
     sequences
     nucmer_mafs
 and process_mugsy_internal options depth nucmer_job_map (l, r) =
-  let sequences =
-    List.append
-      (Mugsy_guide_tree.list_of_guide_tree l)
-      (Mugsy_guide_tree.list_of_guide_tree r)
-  in
+  let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
+  let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
   lwt left_mugsy = run_mugsy_jobs options (depth + 1) nucmer_job_map l
   and right_mugsy = run_mugsy_jobs options (depth + 1) nucmer_job_map r
-  and nucmer_jobs = wait_on_nucmer_jobs nucmer_job_map (searches sequences)
+  and nucmer_jobs = wait_on_nucmer_jobs nucmer_job_map (searches left_seqs right_seqs)
   in
   let nucmer_deltas =
     List.map
