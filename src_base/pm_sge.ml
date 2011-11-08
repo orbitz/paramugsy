@@ -15,6 +15,7 @@ type sge_mode = { out_dir : Fileutils.file_path
 		; stage_data : bool
 		; staging_q : string
 		; tmp_dir : Fileutils.file_path
+		; sequence_dir : Fileutils.file_path
 		; distance : int
 		; minlength : int
 		; template_file : Fileutils.file_path
@@ -70,6 +71,7 @@ let parse_argv argv =
     ; stage_data = !stage_data
     ; staging_q = !staging_q
     ; tmp_dir = !tmp_dir
+    ; sequence_dir = Fileutils.join [!tmp_dir; "sequences"]
     ; distance = !distance
     ; minlength = !minlength
     ; template_file = !template_file
@@ -133,14 +135,20 @@ let sge_options_of_options priority options =
   }
 
 (*
- * Takes a tree and converts it into a flat [(nucmer_seq * nucmer_seq) sge_command list]
+ * Takes a tree and converts it into a flat [(priority * (nucmer_seq * nucmer_seq)) sge_command list]
  *)
-let rec create_nucmers depth = function
+let rec create_nucmers options depth = function
   | H_taxonomic_unit (l, r) -> begin
     let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
     let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
     let results = List.map ~f:(fun s -> (depth, s)) (searches left_seqs right_seqs) in
-    [< Seq.of_list results; create_nucmers (depth + 1) l; create_nucmers (depth + 1) r >]
+    if List.length (List.append left_seqs right_seqs) <= options.seqs_per_mugsy then
+      [< Seq.of_list results >]
+    else
+      [< Seq.of_list results
+      ;  create_nucmers options (depth + 1) l
+      ;  create_nucmers options (depth + 1) r 
+      >]
   end
   | Taxonomic_unit _ ->
     [< >]
@@ -290,7 +298,8 @@ let run_sge argv =
   let options = parse_argv argv in
   Shell.mkdir_p options.out_dir;
   Shell.mkdir_p options.tmp_dir;
-  let sequences = rewrite_sequences options.sequences options.tmp_dir in
+  Shell.mkdir_p options.sequence_dir;
+  let sequences = rewrite_sequences options.sequences options.sequence_dir in
   let guide_tree = Mugsy_guide_tree.guide_tree_of_sequences sequences in
   let final_maf = Lwt_main.run (run_tree options guide_tree >>= 
 				  fun m -> Copy_file.copy_file m.Pm_sge_mugsy.mugsy_maf options.out_maf)

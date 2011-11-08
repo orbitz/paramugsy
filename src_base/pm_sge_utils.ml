@@ -13,7 +13,10 @@ type sge_options = { priority : int
 		   ; out_dir : Fileutils.file_path
 		   }
 
-type copy_files = (Fileutils.file_path * Fileutils.file_path)
+type copy_files = { file_list : Fileutils.file_path
+		  ; src_path : Fileutils.file_path
+		  ; dst_path : Fileutils.file_path
+		  }
 
 type job_id = string
 
@@ -133,26 +136,28 @@ let qsub ?(wait = true) ?(verbose = true) ?(priority = 0) ~template_file ~script
  * this uses rsync so rsync_options are required.
  * A datasync queue is used for the transfers. -- Currently this is ignored
  *)
-let qsub_with_datasync ?(wait = true) ?(verbose = true) ~options ~in_files ~out_files cmds =
+let qsub_with_datasync ?(wait = true) ?(verbose = true) ?(pre = []) ?(post = []) ~options ~in_files ~out_files cmds =
   let rsync_of_in_file (src, dst) = 
     Printf.sprintf 
-      "sync_to.sh %s %d %s %s" 
+      "sync_to.sh %s %d %s %s %s" 
       options.data_queue 
       options.priority 
-      src 
-      dst
+      copy_file.file_list
+      copy_file.src_path
+      copy_file.dst_path
   in
-  let rsync_of_out_file (src, dst) = 
+  let rsync_of_out_file copy_file = 
     Printf.sprintf 
-      "sync_from.sh %s %d %s %s" 
+      "sync_from.sh %s %d %s %s %s" 
       options.data_queue 
-      options.priority 
-      src 
-      dst
+      options.priority
+      copy_file.file_list
+      copy_file.src_path
+      copy_file.dst_path
   in
   let in_file_cmds = Std.List.fold_left ~f:(fun a e -> (rsync_of_in_file e)::a) ~init:[] in_files in
   let out_file_cmds = Std.List.fold_left ~f:(fun a e -> (rsync_of_out_file e)::a) ~init:[] out_files in
-  let cmds = in_file_cmds @ cmds @ out_file_cmds in
+  let cmds = pre @ in_file_cmds @ cmds @ out_file_cmds @ post in
   qsub 
     ~wait:wait 
     ~verbose:verbose 

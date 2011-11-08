@@ -155,11 +155,11 @@ let run_fake_mugsy options in_fasta =
   let out_maf = Fileutils.join [base_dir; "fake_mugsy.maf"] in
   let commands = [Printf.sprintf
 		     "mugsy_profiles fasta_to_maf -in_fasta %s -out_maf %s"
-		     in_fasta
+		     in_fasta_copied
 		     out_maf
 		 ]
   in
-  let in_files = [(base_dir, Fileutils.basename base_dir)] in
+  let in_files = [(base_dir, Fileutils.dirname base_dir)] in
   let out_files = in_files in
   lwt job_id = 
     Pm_sge_utils.qsub_with_datasync

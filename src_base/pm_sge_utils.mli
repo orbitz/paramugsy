@@ -9,7 +9,10 @@ type sge_options = { priority : int
 		   ; out_dir : Fileutils.file_path
 		   }
 
-type copy_files = (Fileutils.file_path * Fileutils.file_path)
+type copy_files = { file_list : Fileutils.file_path
+		  ; src_path : Fileutils.file_path
+		  ; dst_path : Fileutils.file_path
+		  }
 
 type job_id = private string
 
@@ -20,8 +23,10 @@ val wait_on_job_id : job_id -> job_id Lwt.t
 val qsub_with_datasync : 
   ?wait:bool -> 
   ?verbose:bool -> 
+  ?pre:string list ->
+  ?post: string list ->
   options:sge_options -> 
   in_files:copy_files list -> 
-  out_files:copy_files list -> 
+  out_files:copy_files list ->
   string list -> 
   job_id Lwt.t
