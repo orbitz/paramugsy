@@ -283,7 +283,7 @@ let run_tree options tree =
   let nucmers = 
     List.sort 
       ~cmp:(fun (depth1, _) (depth2, _) -> compare depth2 depth1) 
-      (Seq.to_list (create_nucmers 0 tree))
+      (Seq.to_list (create_nucmers options 0 tree))
   in
   let nucmers_chunked = 
     nucmers |> 

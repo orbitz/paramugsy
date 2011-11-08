@@ -137,7 +137,7 @@ let qsub ?(wait = true) ?(verbose = true) ?(priority = 0) ~template_file ~script
  * A datasync queue is used for the transfers. -- Currently this is ignored
  *)
 let qsub_with_datasync ?(wait = true) ?(verbose = true) ?(pre = []) ?(post = []) ~options ~in_files ~out_files cmds =
-  let rsync_of_in_file (src, dst) = 
+  let rsync_of_in_file copy_file = 
     Printf.sprintf 
       "sync_to.sh %s %d %s %s %s" 
       options.data_queue 

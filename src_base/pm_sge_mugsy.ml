@@ -19,18 +19,8 @@ let run_mugsy ~distance ~minlength options seqs mafs =
   lwt _ = Copy_file.mkdir_p base_dir in
   let seqs_file_list = Fileutils.join [base_dir; "mugsy.seqs"] in
   let mafs_file_list = Fileutils.join [base_dir; "mugsy.mafs"] in
-  lwt seqs_copied =
-    Lwt_list.map_s
-      (fun f -> Copy_file.copy_file f (Fileutils.join [base_dir; Fileutils.basename f]))
-      seqs
-  in
-  lwt mafs_copied =
-    Lwt_list.map_s
-      (fun f -> Copy_file.copy_file f (Fileutils.join [base_dir; Fileutils.basename f]))
-      mafs
-  in
-  write_lines seqs_copied seqs_file_list;
-  write_lines mafs_copied mafs_file_list;
+  write_lines seqs seqs_file_list;
+  write_lines mafs mafs_file_list;
   let commands = [ Printf.sprintf "echo Start-Single %d %s `date %s`" 
 		     options.Pm_sge_utils.priority 
 		     base_dir
@@ -48,8 +38,20 @@ let run_mugsy ~distance ~minlength options seqs mafs =
 		   "+%Y%m%d%H%M%S"
 		 ]
   in
-  let in_files = [(base_dir, Fileutils.dirname base_dir)] in
-  let out_files = in_files in
+  let in_file_list = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name ^ "_in.list"] in
+  write_lines 
+    (seqs @ mafs @ [seqs_file_list; mafs_file_list])
+    in_file_list;
+  let in_files = [{ Pm_sge_utils.file_list = in_file_list
+		  ; Pm_sge_utils.src_path = "/"
+		  ; Pm_sge_utils.dst_path = "/"}] 
+  in
+  let out_file_list = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name ^ "_out.list"] in
+  write_lines [Fileutils.join [base_dir; "mugsy.maf"]] out_file_list;
+  let out_files = [{ Pm_sge_utils.file_list = out_file_list
+		   ; Pm_sge_utils.src_path = "/"
+		   ; Pm_sge_utils.dst_path = "/"}]
+  in
   lwt job_id = 
     Pm_sge_utils.qsub_with_datasync
       ~options:options
@@ -67,24 +69,6 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
   let node_name = Global_state.make_ref () in
   let base_dir = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name] in
   lwt _ = Copy_file.mkdir_p base_dir in
-  lwt left_maf_copied = 
-    Copy_file.copy_file 
-      left_maf 
-      (Fileutils.join [base_dir; Fileutils.basename left_maf ^ Global_state.make_ref ()])
-  in
-  lwt right_maf_copied = 
-    Copy_file.copy_file 
-      right_maf 
-      (Fileutils.join [base_dir; Fileutils.basename right_maf ^ Global_state.make_ref ()])
-  in
-  lwt nucmer_deltas_copied=
-    Lwt_list.map_s
-      (fun f -> 
-	Copy_file.copy_file
-	  f
-	  (Fileutils.join [base_dir; Fileutils.basename f]))
-      nucmer_deltas
-  in
   let profiles_left = Fileutils.join [base_dir; "profiles-l"] in
   let profiles_right = Fileutils.join [base_dir; "profiles-r"] in
   let nucmer_file_list = Fileutils.join [base_dir; "nucmer.list"] in
@@ -92,7 +76,7 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
   let maf_file_list = Fileutils.join [base_dir; "maf.list"] in
   let untranslate_file_list = Fileutils.join [base_dir; "untranslate.list"] in
   let untranslate_maf = Fileutils.join [base_dir; "untranslated.maf"] in
-  write_lines nucmer_deltas_copied nucmer_file_list;
+  write_lines nucmer_deltas nucmer_file_list;
   write_lines
     [ Fileutils.join [profiles_left; "l.fasta"]
     ; Fileutils.join [profiles_right; "r.fasta"]
@@ -105,8 +89,8 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
 		     options.Pm_sge_utils.priority 
 		     base_dir 
 		     "+%Y%m%d%H%M%S"
-		 ; Printf.sprintf "mugsy_profiles make -in_maf %s -out_dir %s -basename l" left_maf_copied profiles_left
-		 ; Printf.sprintf "mugsy_profiles make -in_maf %s -out_dir %s -basename r" right_maf_copied profiles_right
+		 ; Printf.sprintf "mugsy_profiles make -in_maf %s -out_dir %s -basename l" left_maf profiles_left
+		 ; Printf.sprintf "mugsy_profiles make -in_maf %s -out_dir %s -basename r" right_maf profiles_right
 		 ; Printf.sprintf
 		   "m_translate %s %s %s %s/profile.delta"
 		   profiles_left
@@ -129,8 +113,21 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
 		 ; Printf.sprintf "echo End-Multi %d %s `date %s`" options.Pm_sge_utils.priority base_dir "+%Y%m%d%H%M%S"
 		 ]
   in
-  let in_files = [(base_dir, Fileutils.dirname base_dir)] in
-  let out_files = [(untranslate_maf, Fileutils.dirname untranslate_maf)] in
+  let in_file_list = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name ^ "_in.list"] in
+  write_lines
+    ([left_maf; right_maf; nucmer_file_list; seqs_file_list; maf_file_list; untranslate_file_list] @
+	nucmer_deltas)
+    in_file_list;
+  let out_file_list = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name ^ "_out.list"] in
+  write_lines [untranslate_maf] out_file_list;
+  let in_files = [{ Pm_sge_utils.file_list = in_file_list
+		  ; Pm_sge_utils.src_path = "/"
+		  ; Pm_sge_utils.dst_path = "/"}]
+  in
+  let out_files = [{ Pm_sge_utils.file_list = out_file_list
+		   ; Pm_sge_utils.src_path = "/"
+		   ; Pm_sge_utils.dst_path = "/"}]
+  in
   lwt job_id = 
     Pm_sge_utils.qsub_with_datasync
       ~options:options
@@ -146,21 +143,25 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
 let run_fake_mugsy options in_fasta =
   let node_name = Global_state.make_ref () in
   let base_dir = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name] in
-  lwt _ = Copy_file.mkdir_p base_dir in
-  lwt in_fasta_copied = 
-    Copy_file.copy_file 
-      in_fasta 
-      (Fileutils.join [base_dir; Fileutils.basename in_fasta])
-  in
   let out_maf = Fileutils.join [base_dir; "fake_mugsy.maf"] in
   let commands = [Printf.sprintf
 		     "mugsy_profiles fasta_to_maf -in_fasta %s -out_maf %s"
-		     in_fasta_copied
+		     in_fasta
 		     out_maf
 		 ]
   in
-  let in_files = [(base_dir, Fileutils.dirname base_dir)] in
-  let out_files = in_files in
+  let in_file_list = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name ^ "_in.maf"] in
+  write_lines [in_fasta] in_file_list;
+  let out_file_list = Fileutils.join [options.Pm_sge_utils.tmp_dir; node_name ^ "_out.maf"] in
+  write_lines [out_maf] out_file_list;
+  let in_files = [{ Pm_sge_utils.file_list = in_file_list
+		  ; Pm_sge_utils.src_path = "/"
+		  ; Pm_sge_utils.dst_path = "/"}]
+  in
+  let out_files = [{ Pm_sge_utils.file_list = out_file_list
+		   ; Pm_sge_utils.src_path = "/"
+		   ; Pm_sge_utils.dst_path = "/"}]
+  in
   lwt job_id = 
     Pm_sge_utils.qsub_with_datasync
       ~options:options

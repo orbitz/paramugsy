@@ -12,47 +12,66 @@ type nucmer_job = { job_id : Pm_sge_utils.job_id
 		  ; output_delta : Fileutils.file_path
 		  }
 
+
+let write_lines lines file =
+  let fout = open_out file in
+  List.iter ~f:(Printf.fprintf fout "%s\n") lines;
+  close_out fout
+
+
 let run_nucmer sge_options sequences =
   let node_name = Global_state.make_ref () in
   let base_dir = Fileutils.join [sge_options.Pm_sge_utils.tmp_dir; node_name] in
-  lwt _ = Copy_file.mkdir_p base_dir in
-  lwt seqs_copied =
-    Lwt_list.map_s
-      (fun (ref_seqs, query_seqs) -> 
-	let ref_seq_dest = Fileutils.join [base_dir; Fileutils.basename ref_seqs] in
-	let query_seq_dest = Fileutils.join [base_dir; Fileutils.basename query_seqs] in
-	lwt _ = Copy_file.copy_file ref_seqs ref_seq_dest in
-	lwt _ = Copy_file.copy_file query_seqs query_seq_dest in
-	Lwt.return (ref_seq_dest, query_seq_dest))
+  let create_command (ref_seq, query_seq) =
+    let basename = Fileutils.basename ref_seq ^ "-" ^ Fileutils.basename query_seq in
+    let tmp_dir = Fileutils.join [base_dir; basename] in
+    Printf.sprintf 
+      "mugsy_nucmer -ref_seq %s -query_seq %s -out_dir %s -tmp_dir %s -maf_out %s.maf -delta_out %s.delta"
+      ref_seq
+      query_seq
+      base_dir
+      tmp_dir
+      basename
+      basename
+  in
+  let out_sequences =
+    List.fold_left
+      ~f:(fun acc (ref_seq, query_seq) ->
+	let basename = Fileutils.basename ref_seq ^ "-" ^ Fileutils.basename query_seq in
+	let maf = Fileutils.join [base_dir; basename ^ ".maf"] in
+	let delta = Fileutils.join [base_dir; basename ^ ".delta"] in
+	maf::delta::acc)
+      ~init:[]
       sequences
   in
-  let create_command (ref_seq, query_seq) =
-    let ref_in = Fileutils.join [base_dir; Fileutils.basename ref_seq] in
-    let query_in = Fileutils.join [base_dir; Fileutils.basename query_seq] in
-    let basename = Fileutils.basename ref_seq ^ "-" ^ Fileutils.basename query_seq in
-    Printf.sprintf 
-      "mugsy_nucmer -ref_seq %s -query_seq %s -out_dir %s -tmp_dir %s/%s -maf_out %s.maf -delta_out %s.delta"
-      ref_in
-      query_in
-      base_dir
-      base_dir
-      basename
-      basename
-      basename
+  let in_file_list = Fileutils.join [sge_options.Pm_sge_utils.tmp_dir; node_name ^ "_in.list"] in
+  let out_file_list = Fileutils.join [sge_options.Pm_sge_utils.tmp_dir; node_name ^ "_out.list"] in
+  write_lines 
+    (List.fold_left
+       ~f:(fun acc (ref_seq, query_seq) -> ref_seq::query_seq::acc)
+       ~init:[]
+       sequences)
+    in_file_list;
+  write_lines out_sequences out_file_list;
+  let in_files = [{ Pm_sge_utils.file_list = in_file_list
+		  ; Pm_sge_utils.src_path = "/"
+		  ; Pm_sge_utils.dst_path = "/"}]
   in
-  let in_files = [(base_dir, Fileutils.dirname base_dir)]in
-  let out_files = in_files in
+  let out_files = [{ Pm_sge_utils.file_list = out_file_list
+		   ; Pm_sge_utils.src_path = "/"
+		   ; Pm_sge_utils.dst_path = "/"}]
+  in
   let commands =
     List.fold_left
       ~f:(fun acc s ->
 	(create_command s)::acc)
       ~init:[]
-      seqs_copied
+      sequences
   in
   lwt job_id = 
     Pm_sge_utils.qsub_with_datasync
-      ~options:sge_options
       ~wait:false
+      ~options:sge_options
       ~in_files:in_files
       ~out_files:out_files
       commands
@@ -68,7 +87,7 @@ let run_nucmer sge_options sequences =
 		  ; output_delta = out_delta
 		  }::acc)
 		~init:[]
-		seqs_copied)
+		sequences)
   
 
 let wait_on_nucmer_jobs nucmer_jobs =
