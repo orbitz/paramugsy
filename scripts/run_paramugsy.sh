@@ -20,7 +20,7 @@ OPTIONS:
    -h      Show this message
    -s      Path to file list of sequences
    -o      Output MAF location
-   -d      Temporary file directory, must be creatable on all machines in the run
+   -d      Temporary file directory, must be creatable on all machines in the run. MUST BE AN ABSOLUTE PATH.
    -m      Maximum number of sequences per Mugsy run (default $SEQS_PER_MUGSY)
    -n      Maximum number of nucmer searches to do per job (default $NUCMER_CHUNK_SIZE)
    -p      ParaMugsy install directory (default $PARAMUGSY_INSTALL)
