@@ -28,38 +28,38 @@ let combine_text text1 text2 =
   ns
 
 
-let write_profile_file out_dir profile =
-  let (major_name, minor_name) = profile.p_name in
-  let outputf = Fileutils.join [out_dir; Printf.sprintf "%s.%s.idx" major_name minor_name] in
-  M_profile.write_profile_file profile outputf
+let write_profile_file profiles_out profile =
+  M_profile.write_profile_file profile profiles_out
 
 
-let rec write_profiles fasta_out prev_major_name text out_dir psin =
+let rec write_profiles fasta_out profiles_out prev_major_name text out_dir psin =
   match Seq.next psin with
     | Some profile when prev_major_name = fst profile.p_name ->
-      write_profile_file out_dir profile;
-      write_profiles fasta_out prev_major_name (combine_text text profile.p_seq_text) out_dir psin
+      write_profile_file profiles_out profile;
+      write_profiles fasta_out profiles_out prev_major_name (combine_text text profile.p_seq_text) out_dir psin
     | Some profile ->
       Printf.fprintf fasta_out ">%s\n%s\n\n" prev_major_name text;
-      write_profile_file out_dir profile;
-      write_profiles fasta_out (fst profile.p_name) profile.p_seq_text out_dir psin
+      write_profile_file profiles_out profile;
+      write_profiles fasta_out profiles_out (fst profile.p_name) profile.p_seq_text out_dir psin
     | None ->
       Printf.fprintf fasta_out ">%s\n%s\n\n" prev_major_name text
 
-let read_first_profile fasta_out out_dir psin =
+let read_first_profile fasta_out profiles_out out_dir psin =
   match Seq.next psin with
     | Some profile ->
-      write_profile_file out_dir profile;
-      write_profiles fasta_out (fst profile.p_name) profile.p_seq_text out_dir psin
+      write_profile_file profiles_out profile;
+      write_profiles fasta_out profiles_out (fst profile.p_name) profile.p_seq_text out_dir psin
     | None ->
       ()
 
 
 let profile_set_of_maf ~out_dir ~in_maf ~basename =
   let psin = M_profile_stream.profile_stream_of_maf ~basename:basename in_maf in
-  let fasta_out = open_out (Fileutils.join [out_dir; basename ^ ".fasta"]) in
-  read_first_profile fasta_out out_dir psin;
-  close_out fasta_out
+  let fasta_out = open_out (Fileutils.join [out_dir;  "sequences.fasta"]) in
+  let profiles_out = open_out (Fileutils.join [out_dir; "profiles"]) in
+  read_first_profile fasta_out profiles_out out_dir psin;
+  close_out fasta_out;
+  close_out profiles_out
 
 let usage = ""
 

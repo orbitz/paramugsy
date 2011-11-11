@@ -150,15 +150,25 @@ let rec untranslate_maf profile_map sin =
     | None ->
       [< >]
       
+let read_profile_set dir =
+  let profile_name = Fileutils.join [dir; "profiles"] in
+  let sin = Lazy_io.read_file_lines ~close:true (open_in profile_name) in
+  let rec read_profiles acc sin =
+    match M_profile.read_profile_file ~lite:false sin with
+      | Some profile ->
+	read_profiles (profile::acc) sin
+      | None ->
+	acc
+  in
+  read_profiles [] sin
 
 let untranslate ~profile_paths ~in_maf =
-  let profile_files = 
-    profile_paths 
-    |> List.map ~f:(fun p -> p |> Sys.readdir |> Array.to_list |> List.map ~f:(fun f -> Fileutils.join [p; f]))
-    |> List.fold_left ~f:(@) ~init:[]
-    |> List.filter ~f:(String.is_suffix ~suffix:".idx")
+  let profile_set  = 
+    List.fold_left 
+      ~f:(fun acc d -> (read_profile_set d) @ acc) 
+      ~init:[] 
+      profile_paths
   in
-  let profile_set = List.map ~f:M_profile.read_profile_file profile_files in
   (*
    * This is a mapping of profile names to profiles unlike in translate
    * which is a mapping of sequence names to profiles

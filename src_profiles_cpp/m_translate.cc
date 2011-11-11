@@ -16,8 +16,6 @@
 #include <m_delta_stream_writer.hh>
 #include <m_translate.hh>
 
-#include <m_fileutils.hh>
-
 using namespace Para_mugsy;
 
 namespace {
@@ -171,22 +169,6 @@ namespace {
     M_profile_idx d_profile_end;
   };
   
-
-  bool _is_not_idx(std::string const &f) {
-    std::string::size_type s = f.find(".idx");
-    return s == std::string::npos;
-  }
-  
-  std::vector<std::string> _list_dir_idx(std::string const &dir) {
-    std::vector<std::string> ret = list_dir(dir);
-    std::vector<std::string>::iterator new_last = std::remove_if(ret.begin(),
-                                                                 ret.end(),
-                                                                 _is_not_idx);
-    ret.erase(new_last, ret.end());
-    
-    return ret;
-  }
-
   template <typename T>
   bool _range_sort_comparator(M_range<T> const &left, M_range<T> const &right) {
     return left.abs().get_start() < right.abs().get_start();
@@ -206,13 +188,11 @@ namespace {
   }
 
   std::map<std::string, std::vector<M_profile> > _profile_map_of_dir(std::string const &dir) {
-    std::vector<std::string> files = _list_dir_idx(dir);
+    std::ifstream in_stream((dir + "/profiles").c_str());
     std::map<std::string, std::vector<M_profile> > ret;
 
-    for(std::vector<std::string>::const_iterator i = files.begin();
-        i != files.end();
-        ++i) {
-      M_profile profile = read_profile_file(true, *i);
+    while(M_option<M_profile> profile_o = read_profile_file(true, in_stream)) {
+      M_profile const &profile = profile_o.value();
       ret[profile.p_seq_name].push_back(profile);
     }
 

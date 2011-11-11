@@ -1,5 +1,4 @@
-#include <iostream>
-
+#include <istream>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -13,11 +12,10 @@
 #include <m_range.hh>
 
 namespace Para_mugsy {
-  M_profile read_profile_file(bool lite, std::string const& fname) {
-    std::ifstream fin(fname.c_str());
+  M_option<M_profile> read_profile_file(bool lite, std::istream &in_stream) {
     std::string line;
 
-    if(std::getline(fin, line)) {
+    if(std::getline(in_stream, line)) {
       /*
        * Elements we will read in
        */
@@ -46,7 +44,7 @@ namespace Para_mugsy {
 
         M_range<M_seq_idx> p_range = M_range<M_seq_idx>(start, end);
 
-        while(std::getline(fin, line) && line != "0") {
+        while(std::getline(in_stream, line) && line != "0") {
           std::istringstream iss(line);
           if(iss >> start >> end) {
             p_gaps.push_back(M_range<M_profile_idx>(start, end));
@@ -57,31 +55,37 @@ namespace Para_mugsy {
         }
 
         if(!lite) {
-          std::getline(fin, p_seq_text);
+          std::getline(in_stream, p_seq_text);
+        }
+        else {
+          /*
+           * Even if we are lite we need to read the string in so the following
+           * profile reads work
+           */
+          std::string throw_away;
+          std::getline(in_stream, throw_away);
         }
 
-        return M_profile(p_major_name,
-                         p_minor_name,
-                         p_seq_name,
-                         p_range,
-                         p_length,
-                         p_src_size,
-                         p_gaps,
-                         p_seq_text);
+        return M_option<M_profile>(M_profile(p_major_name,
+                                             p_minor_name,
+                                             p_seq_name,
+                                             p_range,
+                                             p_length,
+                                             p_src_size,
+                                             p_gaps,
+                                             p_seq_text));
       }
       else {
         throw Profile_read_error();
       }
     }
     else {
-      throw Profile_read_error();
+      return M_option<M_profile>();
     }
-    
-        
   }
 
-  M_profile read_profile_file(std::string const& fname) {
-    return read_profile_file(false, fname);
+  M_option<M_profile> read_profile_file(std::istream &in_stream) {
+    return read_profile_file(false, in_stream);
   }
 
   M_profile_idx profile_idx_of_seq_idx(M_profile const& p, M_seq_idx si) {

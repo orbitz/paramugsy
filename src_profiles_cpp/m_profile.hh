@@ -2,6 +2,7 @@
 #define M_PROFILE_HH
 
 #include <ostream>
+#include <istream>
 
 #include <vector>
 #include <string>
@@ -98,8 +99,8 @@ namespace Para_mugsy {
     M_profile reverse() const;
   };
 
-  M_profile read_profile_file(bool lite, std::string const& fname);
-  M_profile read_profile_file(std::string const& fname);
+  M_option<M_profile> read_profile_file(bool lite, std::istream &in_stream);
+  M_option<M_profile> read_profile_file(std::istream &in_stream);
 
   M_seq_idx inline seq_idx_of_int(long i) { return i; }
   M_profile_idx inline profile_idx_of_int(long i) { return i; }

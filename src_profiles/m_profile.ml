@@ -67,7 +67,7 @@ let profile_of_maf_entry ~name ~seq_name ~range ~src_size ~text =
  * 
  * NOTE: There is a known bug that does not close the input file on failure
  *)
-let read_profile_file ?(lite = false) fname =
+let read_profile_file ?(lite = false) sin =
   let range_of_string str =
     match String.lsplit2 ~on:' ' str with
       | Some (i1, i2) ->
@@ -75,8 +75,6 @@ let read_profile_file ?(lite = false) fname =
       | None ->
 	raise (Failure ("Invalid string reading profile index: " ^ str))
   in
-  let fin = open_in fname in
-  let sin = Lazy_io.read_file_lines fin in
   match Seq.next sin with
     | Some l -> begin
       match String.split_on_chars ~on:[' '] l with
@@ -95,30 +93,34 @@ let read_profile_file ?(lite = false) fname =
 	  let _ = Seq.next sin in
 	  let text =
 	    if lite then
+	      (*
+	       * Even though we're lite we have to read in the line of text so the next
+	       * profile can be read.  Unfortunately there isn't a nice way to do this
+	       * with the stream API that allows us to not allocate the memory for it
+	       *)
+	      let _ = Seq.next sin in
 	      ""
 	    else
 	      match Seq.next sin with
 		| Some text -> String.strip text
-		| None -> raise (Failure (Printf.sprintf "Early end of file in %s" fname))
+		| None -> raise (Failure "Early end of file")
 	  in
-	  close_in fin;
-	  { p_name = (major_name, minor_name)
-	  ; p_seq_name = seq_name
-	  ; p_range = M_range.of_tuple (int_of_string seq_start, int_of_string seq_end)
-	  ; p_length = int_of_string length
-	  ; p_gaps = sequence_gaps
-	  ; p_src_size = int_of_string src_size
-	  ; p_seq_text = text
-	  }
+	  Some { p_name = (major_name, minor_name)
+	       ; p_seq_name = seq_name
+	       ; p_range = M_range.of_tuple (int_of_string seq_start, int_of_string seq_end)
+	       ; p_length = int_of_string length
+	       ; p_gaps = sequence_gaps
+	       ; p_src_size = int_of_string src_size
+	       ; p_seq_text = text
+	       }
 	| _ ->
-	  raise (Failure (Printf.sprintf "Error reading profile index file %s on line %s" fname l))
+	  raise (Failure (Printf.sprintf "Error reading profile index file line %s" l))
     end
     | None ->
-      raise (Failure ("Empty profile index " ^ fname))	  
+      None
 	    
 
-let write_profile_file profile fname =
-  let fout = open_out fname in
+let write_profile_file profile fout =
   let (major_name, minor_name) = profile.p_name in
   Printf.fprintf fout
     "%s %s %s %d %d %d %d\n"
@@ -131,8 +133,7 @@ let write_profile_file profile fname =
     profile.p_src_size;
   List.iter ~f:(fun r -> Printf.fprintf fout "%d %d\n" (M_range.get_start r) (M_range.get_end r)) profile.p_gaps;
   Printf.fprintf fout "0\n";
-  Printf.fprintf fout "%s\n" profile.p_seq_text;
-  close_out fout
+  Printf.fprintf fout "%s\n" profile.p_seq_text
 
 let seq_idx_of_int i = if i > 0 then i else raise (Seq_idx_invalid i)
 let profile_idx_of_int i = if i > 0 then i else raise (Profile_idx_invalid i)

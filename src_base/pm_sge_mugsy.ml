@@ -78,8 +78,8 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
   let untranslate_maf = Fileutils.join [base_dir; "untranslated.maf"] in
   write_lines nucmer_deltas nucmer_file_list;
   write_lines
-    [ Fileutils.join [profiles_left; "l.fasta"]
-    ; Fileutils.join [profiles_right; "r.fasta"]
+    [ Fileutils.join [profiles_left; "sequences.fasta"]
+    ; Fileutils.join [profiles_right; "sequences.fasta"]
     ]
     seqs_file_list;
   write_lines [Fileutils.join [base_dir; "profile.maf"]] maf_file_list;

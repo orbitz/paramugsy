@@ -68,8 +68,18 @@ let next_nearest_gap ref_s query_s = function
       (Some (`Query, qr), (rss, qs))
   
 
-let read_profile_set =
-  List.map ~f:(M_profile.read_profile_file ~lite:true)
+let read_profile_set dir =
+  let profile_name = Fileutils.join [dir; "profiles"] in
+  let sin = Lazy_io.read_file_lines ~close:true (open_in profile_name) in
+  let rec read_profiles acc sin =
+    match M_profile.read_profile_file ~lite:true sin with
+      | Some profile ->
+	read_profiles (profile::acc) sin
+      | None ->
+	acc
+  in
+  read_profiles [] sin
+
 
 let profile_map_of_profile_set =
   let add_to_list m p =
@@ -713,17 +723,8 @@ let translate_nucmer left_map right_map nucmer_list =
   nucmer_list |> delta_stream |> translate_delta left_map right_map
 
 let translate ~left_dir ~right_dir ~nucmer_list =
-  let get_idx dir =
-    dir
-    |> Sys.readdir 
-    |> Array.to_list 
-    |> List.filter ~f:(String.is_suffix ~suffix:".idx")
-    |> List.map ~f:(fun f -> Fileutils.join [dir; f])
-  in
-  let left_files = get_idx left_dir in
-  let right_files = get_idx right_dir in
-  let left_profile_set = read_profile_set left_files in
-  let right_profile_set = read_profile_set right_files in
+  let left_profile_set = read_profile_set left_dir in
+  let right_profile_set = read_profile_set right_dir in
   let left_profile_map = profile_map_of_profile_set left_profile_set in
   let right_profile_map = profile_map_of_profile_set right_profile_set in
   translate_nucmer left_profile_map right_profile_map nucmer_list

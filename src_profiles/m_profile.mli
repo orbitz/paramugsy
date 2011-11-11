@@ -14,8 +14,8 @@ exception Profile_idx_out_of_range of (int * int)
 exception Seq_idx_invalid of int
 exception Profile_idx_invalid of int
 val profile_of_maf_entry : name:profile_name -> seq_name:string -> range:M_range.t -> src_size:int -> text:string -> t
-val read_profile_file : ?lite:bool -> Ort.Fileutils.file_path -> t
-val write_profile_file : t -> Ort.Fileutils.file_path -> unit
+val read_profile_file : ?lite:bool -> string Stream.t -> t option
+val write_profile_file : t -> out_channel -> unit
 val seq_idx_of_int : int -> seq_idx
 val profile_idx_of_int : int -> profile_idx
 val int_of_seq_idx : seq_idx -> int
