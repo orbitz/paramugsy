@@ -36,14 +36,7 @@ namespace Para_mugsy {
          d >>
          src_size_ >>
          text_) {
-        if("+" == d) {
-          direction_ = D_FORWARD;
-          range_ = of_maf(start_, size_, src_size_, direction_);
-        }
-        else {
-          direction_ = D_REVERSE;
-          range_ = of_maf(start_, size_, src_size_, direction_).reverse();
-        }
+        range_ = of_maf(start_, size_, src_size_, d == "+" ? D_FORWARD : D_REVERSE);
       }
       else {
         throw Maf_parse_error();
@@ -55,11 +48,10 @@ namespace Para_mugsy {
       genome_name_(mea.genome_name_),
       start_(mea.start_),
       size_(mea.size_),
-      direction_(mea.direction_),
       src_size_(mea.src_size_),
       text_(mea.text_),
       range_(mea.range_)
-    { }
+    {}
 
     Maf_entry_alignment &operator=(Maf_entry_alignment const &mea) {
       Maf_entry_alignment copy(mea);
@@ -73,7 +65,6 @@ namespace Para_mugsy {
       swap(genome_name_, rhs.genome_name_);
       swap(start_, rhs.start_);
       swap(size_, rhs.size_);
-      swap(direction_, rhs.direction_);
       swap(src_size_, rhs.src_size_);
       swap(text_, rhs.text_);
       swap(range_, rhs.range_);
@@ -89,10 +80,6 @@ namespace Para_mugsy {
 
     long size() const {
       return size_;
-    }
-
-    M_direction direction() const {
-      return direction_;
     }
 
     long src_size() const {
@@ -111,7 +98,6 @@ namespace Para_mugsy {
     std::string genome_name_;
     long start_;
     long size_;
-    M_direction direction_;
     long src_size_;
     std::string text_;
     M_range<long> range_;
@@ -122,6 +108,25 @@ namespace Para_mugsy {
     Maf_entry(std::string const &score, std::string const &label) :
       score_(score), label_(label)
     {}
+
+    Maf_entry(Maf_entry const &maf_entry) :
+      score_(maf_entry.score_),
+      label_(maf_entry.label_),
+      alignments_(maf_entry.alignments_)
+    {}
+
+    void swap(Maf_entry &maf_entry) {
+      using std::swap;
+      swap(score_, maf_entry.score_);
+      swap(label_, maf_entry.label_);
+      swap(alignments_, maf_entry.alignments_);
+    }
+
+    Maf_entry &operator=(Maf_entry const &maf_entry) {
+      Maf_entry copy(maf_entry);
+      swap(copy);
+      return *this;
+    }
     
     std::string score() const {
       return score_;
@@ -167,6 +172,14 @@ namespace Para_mugsy {
     std::istream &istream_;
   };
 
+  inline void swap(Maf_entry_alignment &left, Maf_entry_alignment &right) {
+    left.swap(right);
+  }
+  
+  inline void swap(Maf_entry &left, Maf_entry &right) {
+    left.swap(right);
+  }
+  
 }
 
 #endif

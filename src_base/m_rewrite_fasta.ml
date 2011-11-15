@@ -48,7 +48,11 @@ let rec rewrite_headers_stream species sin =
 	  raise (Failure ("Unknown line: " ^ l))
     end
     | Some l when not (String.is_empty l) && l.[0] = '>' -> begin
-      let cleaned_name = String.tr ~target:'-' ~replacement:'_' (String.drop_prefix l 1) in
+      let cleaned_name = 
+	(String.drop_prefix l 1) |>
+	    String.tr ~target:'-' ~replacement:'_' |>
+		String.tr ~target:'.' ~replacement:'_'
+      in
       let header_new = Printf.sprintf ">%s.%s" species cleaned_name in
       [< 'header_new
       ;  rewrite_headers_stream species sin

@@ -72,5 +72,5 @@ let rec map ~f = function
 let guide_tree_of_sequences sequences =
   let seqs = String.concat ~sep:"\n" sequences ^ "\n" in
   let path_map = List.map ~f:(fun s -> (Fileutils.basename s, s)) sequences in
-  let tree = Shell.sh_lines ~echo:true ~input:seqs "strip_sequences.sh | muscle -clusteronly -tree1 - -maxmb 13000" in
+  let tree = Shell.sh_lines ~echo:true ~input:seqs "strip_sequences.sh | muscle -clusteronly -tree1 - -maxmb 99999999" in
   map ~f:(flip List.assoc path_map) (load_guide_tree (Seq.of_list tree))
