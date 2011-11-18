@@ -69,6 +69,6 @@ fi
 
 
 export PATH=$PARAMUGSY_INSTALL:$PATH
-
+export PARAMUGSY_INSTALL
 
 paramugsy sge -seqs_per_mugsy $SEQS_PER_MUGSY -nucmer_chunk_size $NUCMER_CHUNK_SIZE -template_file $PARAMUGSY_INSTALL/pm_qsub_template.sh -seq_list $SEQ_LIST -out_dir $TMP_DIR -tmp_dir $TMP_DIR/tmp -out_maf $OUT_MAF

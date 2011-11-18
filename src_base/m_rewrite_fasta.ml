@@ -51,7 +51,8 @@ let rec rewrite_headers_stream species sin =
       let cleaned_name = 
 	(String.drop_prefix l 1) |>
 	    String.tr ~target:'-' ~replacement:'_' |>
-		String.tr ~target:'.' ~replacement:'_'
+		String.tr ~target:'.' ~replacement:'_' |>
+		    String.tr ~target:' ' ~replacement:'_'
       in
       let header_new = Printf.sprintf ">%s.%s" species cleaned_name in
       [< 'header_new

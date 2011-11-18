@@ -2,45 +2,74 @@
 #define MAF_STITCH_HH
 #include <ifstream>
 
+#include <string>
 #include <vector>
 #include <algorithm>
 
 #include <m_range.hh>
 
 namespace Para_mugsy {
-  class Maf_alignment_entry {
-    Maf_alignment_entry(Maf_entry const &maf_entry, int pos) :
-      maf_entry_(maf_entry), pos_(pos)
-    {}
+  class Maf_alignment {
+  public:
+    class Maf_alignment_entry;
+    
+    Maf_alignment();
+    Maf_alignment(std::streampos const &pos);
+    Maf_alignment(Maf_alignment const &ma);
 
-    Maf_alignment_entry(Maf_alignment_entry const &mae) :
-      maf_entry_(mae.maf_entry_), pos_(mae.pos_)
-    {}
+    Maf_alignment &operator=(Maf_alignment const &ma);
 
-    void swap(Maf_alignment_entry &mae) {
-      using std::swap;
-      swap(maf_entry_, mae.maf_entry_);
-      swap(pos_, mae.pos_);
+
+    void add_maf_entry(Maf_entry const &me);
+    
+    std::vector<Maf_alignment_entry> const &alignments() const {
+      return alignments_;
     }
 
-    M_genome_range &operator=(M_alignment_entry const &mae) {
-      M_alignment_entry copy(mae);
-      swap(copy);
-      return *this;
+    std::streampos const &pos() const {
+      return pos_;
     }
 
-    Maf_entry const &maf_entry() {
-      return maf_entry;
-    }
+    
+    class Maf_alignment_entry {
+    public:
+      Maf_alignment_entry() :
+        range_(-1, -1), genome_name_()
+      {}
+      
+      Maf_alignment_entry(M_range<long> const &range, std::string const &genome_name) :
+        range_(range), genome_name_(genome_name)
+      {}
 
-    int pos() {
-      return pos;
-    }
+      Maf_alignment_entry(Maf_alignment_entry const &mae) :
+        range_(mae.range_), genome_name_(mae.genome_name_)
+      {}
 
+      Maf_alignment_entry &operator=(Maf_alignment_entry const &mae) {
+        range_ = mae.range_;
+        genome_name_ = mae.genome_name_;
+      }
+
+      M_range<long> const &range() const {
+        return range_;
+      }
+
+      std::string const &genome_name() const {
+        return genome_name_;
+      }
+        
+    private:
+      M_range<long> range_;
+      std::string genome_name_;
+    };
+
+    
+    
   private:
-    Maf_entry maf_entry_;
-    int pos_;
+    std::vector<Maf_alignment_entry> alignments_;
+    std::streampos pos_;
   };
+    
   
   class M_genome_range {
   public:
@@ -64,11 +93,11 @@ namespace Para_mugsy {
       return *this;
     }
     
-    M_range<long> const &range() {
+    M_range<long> const &range() const {
       return range_;
     }
 
-    Maf_alignment_id alignment_id() {
+    Maf_alignment_id alignment_id() const {
       return alignment_id_;
     }
 
@@ -86,7 +115,7 @@ namespace Para_mugsy {
   }
 
 
-  typedef std::vector<Maf_alignment_entry> Maf_alignment_table;
+  typedef std::vector<Maf_alignment> Maf_alignment_table;
   typedef std::vector<std::vector<Maf_alignment_id> > Maf_stitch;
   
   Maf_alignemnt_table alignment_table_of_ifstream(std::ifstream &in_stream);

@@ -110,6 +110,14 @@ let run_mugsy_with_profiles ~distance ~minlength options left_maf right_maf nucm
 		   untranslate_file_list 
 		   base_dir
 		   untranslate_maf
+		 ; Printf.sprintf
+		   "rm -rf %s/profile.delta %s/profile.maf %s/mugsy/mugsy.all.fsa %s/mugsy/mugsy.xmfa %s %s"
+		   base_dir
+		   base_dir
+		   base_dir
+		   base_dir
+		   profiles_left
+		   profiles_right
 		 ; Printf.sprintf "echo End-Multi %d %s `date %s`" options.Pm_sge_utils.priority base_dir "+%Y%m%d%H%M%S"
 		 ]
   in
