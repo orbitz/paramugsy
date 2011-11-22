@@ -1,14 +1,17 @@
-#ifdef MAF_STITCH_HH
+#ifndef MAF_STITCH_HH
 #define MAF_STITCH_HH
-#include <ifstream>
+#include <fstream>
 
 #include <string>
 #include <vector>
 #include <algorithm>
 
 #include <m_range.hh>
+#include <maf_read_stream.hh>
 
 namespace Para_mugsy {
+  typedef int Maf_alignment_id;
+  
   class Maf_alignment {
   public:
     class Maf_alignment_entry;
@@ -48,6 +51,7 @@ namespace Para_mugsy {
       Maf_alignment_entry &operator=(Maf_alignment_entry const &mae) {
         range_ = mae.range_;
         genome_name_ = mae.genome_name_;
+        return *this;
       }
 
       M_range<long> const &range() const {
@@ -105,10 +109,6 @@ namespace Para_mugsy {
     M_range<long> range_;
     Maf_alignment_id alignment_id_;
   };
-
-  inline void swap(Maf_alignment_entry &left, Maf_alignment_entry &right) {
-    left.swap(right);
-  }
   
   inline void swap(M_genome_range &left, M_genome_range &right) {
     left.swap(right);
@@ -118,7 +118,7 @@ namespace Para_mugsy {
   typedef std::vector<Maf_alignment> Maf_alignment_table;
   typedef std::vector<std::vector<Maf_alignment_id> > Maf_stitch;
   
-  Maf_alignemnt_table alignment_table_of_ifstream(std::ifstream &in_stream);
+  Maf_alignment_table alignment_table_of_ifstream(std::ifstream &in_stream);
   Maf_stitch maf_stitch_of_alignment_table(Maf_alignment_table const &maf_alignment_table);
   
 }

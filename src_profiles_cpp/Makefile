@@ -1,4 +1,4 @@
-OUTPUT = m_sort_delta m_translate maf_analyzer
+OUTPUT = m_sort_delta m_translate maf_analyzer maf_stitcher
 
 CC = g++
 CPPFLAGS = -I.
@@ -12,6 +12,8 @@ m_sort_delta : m_delta.o m_sort_delta.o
 m_translate : m_delta.o m_delta_builder.o m_profile.o m_fileutils.o m_translate.o m_translate_main.o
 
 maf_analyzer : maf_analyzer.o maf_read_stream.o maf_analyzer_missing.o
+
+maf_stitcher : maf_stitcher.o maf_stitch.o maf_read_stream.o
 
 m_delta.o : m_delta.cc
 
@@ -62,6 +64,10 @@ maf_read_stream.hh : m_option.hh m_direction.hh
 maf_analyzer_missing.cc : maf_analyzer_missing.hh maf_read_stream.hh
 
 maf_analyzer_missing.hh : maf_read_stream.hh
+
+maf_stitcher.o : maf_stitcher.cc maf_stitch.hh
+
+maf_stitch.o : maf_stitch.cc maf_stitch.hh
 
 .PHONY : clean
 clean :
