@@ -11,6 +11,8 @@
 
 namespace {
   using namespace Para_mugsy;
+
+  int const ALIGNMENT_DISTANCE = 10;
   
   typedef std::map<std::string, std::vector<M_genome_range> > _Sorted_genomes;
   typedef Maf_alignment::Maf_alignment_entry Maf_alignment_entry;
@@ -54,7 +56,11 @@ namespace {
   }
 
   bool _in_range(long diff, long epsilon) {
-    return diff <= epsilon;
+    return diff >= 0 && diff <= epsilon;
+  }
+
+  long _abs(long diff) {
+    return diff < 0 ? -diff : diff;
   }
   
   bool _is_alignment_adjacent(std::vector<Maf_alignment_entry> const &left_alignments,
@@ -70,9 +76,9 @@ namespace {
                                                                        i->genome_name())) {
           M_range<long> const &right_range = mae_o.value().range();
           bool directions_equal = left_range.get_direction() == right_range.get_direction();
-          bool forward_and_adjacent = left_range.get_direction() == D_FORWARD && _in_range(right_range.get_start() - left_range.get_end(), 20);
-          bool reverse_and_adjacent = left_range.get_direction() == D_REVERSE && _in_range(left_range.get_end() - right_range.get_start(), 20);
-          std::cout << "Comparing " << left_range << " ~ " << right_range << " ";
+          bool forward_and_adjacent = left_range.get_direction() == D_FORWARD && _in_range(right_range.get_start() - left_range.get_end(), ALIGNMENT_DISTANCE);
+          bool reverse_and_adjacent = left_range.get_direction() == D_REVERSE && _in_range(left_range.get_end() - right_range.get_start(), ALIGNMENT_DISTANCE);
+          std::cout << "Comparing " << left_range << " ~ " << right_range << " " << _abs(left_range.get_end() - right_range.get_start()) << " ";
           if(directions_equal && (forward_and_adjacent || reverse_and_adjacent)) {
             std::cout << "true\n";
           }
@@ -104,6 +110,7 @@ namespace {
         Maf_alignment_id next_id = (i + 1)->alignment_id();
         std::vector<Maf_alignment_entry> const &curr_alignments = mat[curr_id].alignments();
         std::vector<Maf_alignment_entry> const &next_alignments = mat[next_id].alignments();
+        std::cout << "Checking genome range " << i->range() << " against " << (i + 1)->range() << "\n";
         if(_is_alignment_adjacent(curr_alignments, next_alignments)) {
           std::cout << "MATCH: " << curr_id << " ~ " << next_id << "\n";
         }
