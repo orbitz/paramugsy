@@ -22,9 +22,8 @@ namespace {
     return _adjacent_left(point, range) && _adjacent_right(point, range);
   }
   
-  Missing_vector::iterator _find_insertion_point(Maf_entry_alignment const &alignment,
+  Missing_vector::iterator _find_insertion_point(M_range<long> const &range,
                                                  Missing_vector &genome_missing) {
-    M_range<long> const &range(alignment.range());
     for(Missing_vector::iterator i = genome_missing.begin();
         i != genome_missing.end();
         ++i) {
@@ -38,15 +37,17 @@ namespace {
   
   void _insert(Maf_entry_alignment const &alignment, Maf_genome_map &genome_map) {
     Missing_vector &genome_missing = genome_map[alignment.genome_name()];
-    Missing_vector::iterator insertion_point = _find_insertion_point(alignment,
+    M_range<long> range(alignment.range().abs());
+    Missing_vector::iterator insertion_point = _find_insertion_point(range,
                                                                      genome_missing);
+
 
     if(genome_missing.empty()) {
       /*
        * No entries for this genome yet, so add our current one
        */
       Maf_analyzer_missing_entry missing_entry;
-      missing_entry.set_range(alignment.range());
+      missing_entry.set_range(range);
       genome_missing.insert(insertion_point, missing_entry);
     }
     else {
@@ -61,7 +62,7 @@ namespace {
 
       if(insertion_point != genome_missing.begin() &&
          insertion_point != genome_missing.end() &&
-         _adjacent_left_right(insertion_point, alignment.range())) {
+         _adjacent_left_right(insertion_point, range)) {
         /*
          * Insertion point somewhere in the middle and connects two points already there
          */
@@ -72,23 +73,23 @@ namespace {
         genome_missing.erase(previous_point);
       }
       else if(insertion_point != genome_missing.end() &&
-              _adjacent_right(insertion_point, alignment.range())) {
+              _adjacent_right(insertion_point, range)) {
         /*
          * Our insertion point is not at the end and connects our alignment
          */
         M_range<long> prev_range = insertion_point->range();
-        insertion_point->set_range(M_range<long>(alignment.range().get_start(),
+        insertion_point->set_range(M_range<long>(range.get_start(),
                                                  insertion_point->range().get_end()));
       }
       else if(insertion_point != genome_missing.begin() &&
-              _adjacent_left(insertion_point, alignment.range())) {
+              _adjacent_left(insertion_point, range)) {
         /*
          * Insertion point is not at the beginning and connects our alignment
          */
         Missing_vector::iterator previous_point = insertion_point - 1;
         M_range<long> prev_range = previous_point->range();
         previous_point->set_range(M_range<long>(previous_point->range().get_start(),
-                                                alignment.range().get_end()));
+                                                range.get_end()));
 
       }
       else {
@@ -96,7 +97,7 @@ namespace {
          * Not adjacent to anything, insert
          */
         Maf_analyzer_missing_entry missing_entry;
-        missing_entry.set_range(alignment.range());
+        missing_entry.set_range(range);
         genome_missing.insert(insertion_point, missing_entry);
       }
     }

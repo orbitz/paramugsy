@@ -18,7 +18,10 @@ int main(int argc, char **argv) {
     maf_missing.add(o_entry.value());
   }
 
+  // Missing regions
   Maf_missing_report missing_report = maf_missing.report();
+
+  // Found regions
   // Maf_missing_report const &missing_report = maf_missing.genome_map();
   
   for(Maf_missing_report::const_iterator i = missing_report.begin();
