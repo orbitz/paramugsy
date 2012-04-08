@@ -33,7 +33,7 @@ namespace {
       }
     }
 
-    for(_Sorted_genomes::iterator i = ret.begin();
+    for(Sorted_genomes::iterator i = ret.begin();
         i != ret.end();
         ++i) {
       std::sort(i->second.begin(), i->second.end(), genome_range_sort_comparator);
@@ -111,17 +111,17 @@ namespace {
         std::vector<Maf_alignment_entry> const &curr_alignments = mat[curr_id].alignments();
         std::vector<Maf_alignment_entry> const &next_alignments = mat[next_id].alignments();
         std::cout << "Checking genome range " << i->range() << " against " << (i + 1)->range() << "\n";
-        if(_is_alignment_adjacent(curr_alignments, next_alignments)) {
+        if(is_alignment_adjacent(curr_alignments, next_alignments)) {
           std::cout << "MATCH: " << curr_id << " ~ " << next_id << "\n";
         }
       }
     }
   }
   
-  void print_adjacent_alignments(_Sorted_genomes const &sorted_genomes, Maf_alignment_table const &mat) {
+  void print_adjacent_alignments(Sorted_genomes const &sorted_genomes, Maf_alignment_table const &mat) {
     std::vector<std::vector<M_genome_range> > genome_ranges;
     
-    for(_Sorted_genomes::const_iterator sg_i = sorted_genomes.begin();
+    for(Sorted_genomes::const_iterator sg_i = sorted_genomes.begin();
         sg_i != sorted_genomes.end();
         ++sg_i) {
       genome_ranges.push_back(sg_i->second);
