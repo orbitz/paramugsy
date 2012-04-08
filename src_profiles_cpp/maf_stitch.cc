@@ -12,18 +12,18 @@
 namespace {
   using namespace Para_mugsy;
 
-  int const ALIGNMENT_DISTANCE = 10;
+  int const ALIGNMENT_DISTANCE = 1;
   
-  typedef std::map<std::string, std::vector<M_genome_range> > _Sorted_genomes;
+  typedef std::map<std::string, std::vector<M_genome_range> > Sorted_genomes;
   typedef Maf_alignment::Maf_alignment_entry Maf_alignment_entry;
 
-  bool _genome_range_sort_comparator(M_genome_range const &left, M_genome_range const &right) {
+  bool genome_range_sort_comparator(M_genome_range const &left, M_genome_range const &right) {
     return left.range().abs().get_start() < right.range().abs().get_start();
   }
 
   
-  _Sorted_genomes _sort_genomes(Maf_alignment_table const &mat) {
-    _Sorted_genomes ret;
+  Sorted_genomes sort_genomes(Maf_alignment_table const &mat) {
+    Sorted_genomes ret;
 
     for(size_t i = 0; i < mat.size(); ++i) {
       for(std::vector<Maf_alignment_entry>::const_iterator alignment = mat[i].alignments().begin();
@@ -36,13 +36,13 @@ namespace {
     for(_Sorted_genomes::iterator i = ret.begin();
         i != ret.end();
         ++i) {
-      std::sort(i->second.begin(), i->second.end(), _genome_range_sort_comparator);
+      std::sort(i->second.begin(), i->second.end(), genome_range_sort_comparator);
     }
 
     return ret;
   }
 
-  M_option<Maf_alignment_entry> _find_alignment_entry(std::vector<Maf_alignment_entry> const &alignments,
+  M_option<Maf_alignment_entry> find_alignment_entry(std::vector<Maf_alignment_entry> const &alignments,
                                                                      std::string const &genome_name) {
     for(std::vector<Maf_alignment_entry>::const_iterator i = alignments.begin();
         i != alignments.end();
@@ -55,15 +55,15 @@ namespace {
     return M_option<Maf_alignment_entry>();
   }
 
-  bool _in_range(long diff, long epsilon) {
+  bool in_range(long diff, long epsilon) {
     return diff >= 0 && diff <= epsilon;
   }
 
-  long _abs(long diff) {
+  long abs(long diff) {
     return diff < 0 ? -diff : diff;
   }
   
-  bool _is_alignment_adjacent(std::vector<Maf_alignment_entry> const &left_alignments,
+  bool is_alignment_adjacent(std::vector<Maf_alignment_entry> const &left_alignments,
                               std::vector<Maf_alignment_entry> const &right_alignments) {
     if(left_alignments.size() == right_alignments.size()) {
       std::cout << "----------\n";
@@ -72,13 +72,13 @@ namespace {
           ++i) {
         std::cout << "Checking: " << i->genome_name() << "\n";
         M_range<long> const &left_range = i->range();
-        if(M_option<Maf_alignment_entry> mae_o = _find_alignment_entry(right_alignments,
+        if(M_option<Maf_alignment_entry> mae_o = find_alignment_entry(right_alignments,
                                                                        i->genome_name())) {
           M_range<long> const &right_range = mae_o.value().range();
           bool directions_equal = left_range.get_direction() == right_range.get_direction();
-          bool forward_and_adjacent = left_range.get_direction() == D_FORWARD && _in_range(right_range.get_start() - left_range.get_end(), ALIGNMENT_DISTANCE);
-          bool reverse_and_adjacent = left_range.get_direction() == D_REVERSE && _in_range(left_range.get_end() - right_range.get_start(), ALIGNMENT_DISTANCE);
-          std::cout << "Comparing " << left_range << " ~ " << right_range << " " << _abs(left_range.get_end() - right_range.get_start()) << " ";
+          bool forward_and_adjacent = left_range.get_direction() == D_FORWARD && in_range(right_range.get_start() - left_range.get_end(), ALIGNMENT_DISTANCE);
+          bool reverse_and_adjacent = left_range.get_direction() == D_REVERSE && in_range(left_range.get_end() - right_range.get_start(), ALIGNMENT_DISTANCE);
+          std::cout << "Comparing " << left_range << " ~ " << right_range << " " << abs(left_range.get_end() - right_range.get_start()) << " ";
           if(directions_equal && (forward_and_adjacent || reverse_and_adjacent)) {
             std::cout << "true\n";
           }
@@ -100,7 +100,7 @@ namespace {
   }
   
   
-  void _find_adjacent_alignments(std::vector<M_genome_range> const &genome, Maf_alignment_table const &mat) {
+  void find_adjacent_alignments(std::vector<M_genome_range> const &genome, Maf_alignment_table const &mat) {
     std::cout << "genome.size() = " << genome.size() << "\n";
     if(genome.size() > 1) {
       for(std::vector<M_genome_range>::const_iterator i = genome.begin();
@@ -118,7 +118,7 @@ namespace {
     }
   }
   
-  void _print_adjacent_alignments(_Sorted_genomes const &sorted_genomes, Maf_alignment_table const &mat) {
+  void print_adjacent_alignments(_Sorted_genomes const &sorted_genomes, Maf_alignment_table const &mat) {
     std::vector<std::vector<M_genome_range> > genome_ranges;
     
     for(_Sorted_genomes::const_iterator sg_i = sorted_genomes.begin();
@@ -130,7 +130,7 @@ namespace {
     for(std::vector<std::vector<M_genome_range> >::const_iterator genome_range_i = genome_ranges.begin();
         genome_range_i != genome_ranges.end();
         ++genome_range_i) {
-      _find_adjacent_alignments(*genome_range_i, mat);
+      find_adjacent_alignments(*genome_range_i, mat);
     }
   }
 }
@@ -195,9 +195,9 @@ namespace Para_mugsy {
   Maf_stitch maf_stitch_of_alignment_table(Maf_alignment_table const &maf_alignment_table) {
     Maf_stitch ret;
 
-    _Sorted_genomes sorted_genomes = _sort_genomes(maf_alignment_table);
+    Sorted_genomes sorted_genomes = sort_genomes(maf_alignment_table);
 
-    _print_adjacent_alignments(sorted_genomes, maf_alignment_table);
+    print_adjacent_alignments(sorted_genomes, maf_alignment_table);
     return ret;
   }
 }
