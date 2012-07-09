@@ -17,6 +17,8 @@ using std::cerr;
 using std::endl;
 
 int main(int argc, char **argv) {
+  std::ios_base::sync_with_stdio(false);
+
   if(argc < 5) {
     cerr << "Usage: m_translate <left_profile_dir> <right_profile_dir> <nucmer_file_list> <output_delta_path>" << endl;
     return 1;

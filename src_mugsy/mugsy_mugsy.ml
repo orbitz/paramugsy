@@ -1,6 +1,5 @@
 open Core_extended
 open Core_extended.Std
-open Core_extended.Function
 open Ort
 open Ort.Function
 open Bio

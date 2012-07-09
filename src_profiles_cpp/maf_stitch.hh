@@ -116,7 +116,10 @@ namespace Para_mugsy {
 
 
   typedef std::vector<Maf_alignment> Maf_alignment_table;
-  typedef std::vector<std::vector<Maf_alignment_id> > Maf_stitch;
+
+  typedef std::vector<Maf_alignment_id> Maf_alignment_point;
+  typedef std::vector<Maf_alignment_point> Maf_sequence_alignment;
+  typedef std::vector<Maf_sequence_alignment> Maf_stitch;
   
   Maf_alignment_table alignment_table_of_ifstream(std::ifstream &in_stream);
   Maf_stitch maf_stitch_of_alignment_table(Maf_alignment_table const &maf_alignment_table);

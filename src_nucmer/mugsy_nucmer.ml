@@ -22,7 +22,6 @@
 
 open Core_extended
 open Core_extended.Std
-open Core_extended.Function
 open Ort
 open Ort.Function
 
@@ -129,8 +128,8 @@ let rec run_search options =
 
 let main () =
   let options = parse_argv () in
-  Shell.mkdir_p options.out_dir;
-  Shell.mkdir_p options.tmp_dir;
+  Shell.mkdir ?p:(Some ()) options.out_dir;
+  Shell.mkdir ?p:(Some ()) options.tmp_dir;
   run_search options;
   Shell.sh ~verbose:options.debug ~echo:options.debug "rm -rf %s" options.tmp_dir
 

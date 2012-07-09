@@ -5,6 +5,8 @@
 using namespace Para_mugsy;
 
 int main(int argc, char **argv) {
+  std::ios_base::sync_with_stdio(false);
+  
   if(argc != 2) {
     std::cerr << "Must be called with name of maf file\n";
     return 1;
