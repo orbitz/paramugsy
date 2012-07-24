@@ -5,7 +5,7 @@ subdirs_byte   = $(SUBDIRS:%=%_byte)
 subdirs_debug  = $(SUBDIRS:%=%_debug)
 subdirs_clean  = $(SUBDIRs:%=%_clean)
 
-.PHONY: native byte debug clean
+.PHONY: native byte debug clean $(subdirs_native) $(subdirs_byte) $(subdirs_debug) $(subdirs_clean)
 
 native: $(subdirs_native)
 

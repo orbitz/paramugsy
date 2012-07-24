@@ -19,7 +19,6 @@ byte-code: all
 debug-code: all
 
 m_translate: $(objects)
-	$(CC) $(CXXFLAGS) -o m_translate $(objects) $(LDFLAGS)
 
 m_translate.cc: m_delta.hh m_delta_builder.hh \
 	m_profile.hh m_metaprofile.hh \
