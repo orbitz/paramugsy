@@ -3,9 +3,13 @@ SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate
 subdirs_native = $(SUBDIRS:%=%_native)
 subdirs_byte   = $(SUBDIRS:%=%_byte)
 subdirs_debug  = $(SUBDIRS:%=%_debug)
-subdirs_clean  = $(SUBDIRs:%=%_clean)
+subdirs_clean  = $(SUBDIRS:%=%_clean)
 
-.PHONY: native byte debug clean $(subdirs_native) $(subdirs_byte) $(subdirs_debug) $(subdirs_clean)
+.PHONY: all native byte debug clean \
+	$(SUBDIRS) $(subdirs_native) $(subdirs_byte) \
+	$(subdirs_debug) $(subdirs_clean)
+
+all: native
 
 native: $(subdirs_native)
 
