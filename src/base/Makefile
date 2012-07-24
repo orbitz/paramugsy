@@ -1,4 +1,4 @@
-OCAMLMAKEFILE = ../OCamlMakefile
+OCAMLMAKEFILE = ../../OCamlMakefile
 
 USE_CAMLP4 = yes
 
