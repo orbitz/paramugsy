@@ -1,4 +1,4 @@
-SUBDIRS = base mugsy nucmer profiles profiles_cpp profiles_lib
+SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate
 
 subdirs_native = $(SUBDIRS:%=%_native)
 subdirs_byte   = $(SUBDIRS:%=%_byte)
@@ -14,6 +14,8 @@ byte: $(subdirs_byte)
 debug: $(subdirs_debug)
 
 clean: $(subdirs_clean)
+
+m_translate: profiles_lib
 
 $(subdirs_native):
 	$(MAKE) -C $(patsubst %_native,%,$@) native-code
