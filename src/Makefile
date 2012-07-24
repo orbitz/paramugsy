@@ -1,4 +1,4 @@
-SUBDIRS = base mugsy nucmer profiles profiles_cpp
+SUBDIRS = base mugsy nucmer profiles profiles_cpp profiles_lib
 
 subdirs_native = $(SUBDIRS:%=%_native)
 subdirs_byte   = $(SUBDIRS:%=%_byte)
