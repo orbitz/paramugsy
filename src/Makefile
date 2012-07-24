@@ -1,4 +1,4 @@
-SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate
+SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate ocaml-bio ocaml-seq
 
 subdirs_native = $(SUBDIRS:%=%_native)
 subdirs_byte   = $(SUBDIRS:%=%_byte)
@@ -18,6 +18,14 @@ byte: $(subdirs_byte)
 debug: $(subdirs_debug)
 
 clean: $(subdirs_clean)
+
+base: ocaml-bio ocaml-seq
+
+mugsy: ocaml-bio ocaml-seq
+
+nucmer: ocaml-seq
+
+profiles: ocaml-bio ocaml-seq
 
 m_translate: profiles_lib
 
