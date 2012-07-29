@@ -69,8 +69,6 @@ let mk_nucmer max_seqs guide_tree =
 let make_job max_seqs sequences =
   let guide_tree = Mugsy_guide_tree.gudie_tree_of_sequenes sequences
   in
-  let (tree, pairwise) = mk_job max_seqs guide_tree
-  in
-  { job_tree = tree
-  ; pairwise = List.rev pairwise
+  { job_tree = mk_job max_seqs guide_tree
+  ; pairwise = mk_nucmer max_seqs guide_tree
   }

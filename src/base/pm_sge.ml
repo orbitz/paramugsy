@@ -40,7 +40,7 @@ let parse_argv argv =
   let nucmer_chunk_size = ref 1 in
   let out_maf = ref "" in
 
-  let params = 
+  let params =
     Arg.align [ ("-seq_list", Arg.Set_string seq_list, "Path A file containing a list of paths to sequences.")
 	      ; ("-out_dir", Arg.Set_string out_dir, "Path Location to output files.")
 	      ; ("-exec_q", Arg.Set_string exec_q, "String Queue name to run exec jobs on, defaults to exec.q.")
@@ -147,13 +147,13 @@ let rec create_nucmers options depth = function
     else
       [< Seq.of_list results
       ;  create_nucmers options (depth + 1) l
-      ;  create_nucmers options (depth + 1) r 
+      ;  create_nucmers options (depth + 1) r
       >]
   end
   | Taxonomic_unit _ ->
     [< >]
 
-      
+
 let run_nucmer_chunks options nucmer_chunks =
   let get_priority = function
     | (priority, _)::_ ->
@@ -167,7 +167,7 @@ let run_nucmer_chunks options nucmer_chunks =
     | chunks::rest_chunks ->
       let priority = get_priority chunks in
       let seqs = List.map ~f:snd chunks in
-      lwt jobs = 
+      lwt jobs =
 	Pm_sge_nucmer.run_nucmer
 	  (sge_options_of_options priority options)
 	  seqs
@@ -183,18 +183,18 @@ let run_nucmer_chunks options nucmer_chunks =
   qsub_nucmers' Tuple_map.empty nucmer_chunks
 
 let wait_on_nucmer_jobs nucmer_job_map searches =
-  let jobs = 
-    List.map 
-      ~f:(fun k -> Tuple_map.find (basename_of_search k) nucmer_job_map) 
+  let jobs =
+    List.map
+      ~f:(fun k -> Tuple_map.find (basename_of_search k) nucmer_job_map)
       searches
   in
   Pm_sge_nucmer.wait_on_nucmer_jobs jobs
 
 
 let run_mugsy_and_wait options depth sequences nucmer_mafs =
-  lwt mugsy_job = 
+  lwt mugsy_job =
     Pm_sge_mugsy.run_mugsy
-      ~distance:options.distance 
+      ~distance:options.distance
       ~minlength:options.minlength
       (sge_options_of_options depth options)
       sequences
@@ -225,10 +225,10 @@ let run_fake_mugsy_and_wait options depth sequence =
 let rec run_mugsy_jobs options depth nucmer_job_map = function
   | H_taxonomic_unit (l, r) as subtree -> begin
     let sequences = Mugsy_guide_tree.list_of_guide_tree subtree in
-    lwt () = 
-      Lwt_io.printf 
-	"--- Processing depth: %d Num seqs: %d\n" 
-	depth 
+    lwt () =
+      Lwt_io.printf
+	"--- Processing depth: %d Num seqs: %d\n"
+	depth
 	(List.length sequences)
     in
     if List.length sequences <= options.seqs_per_mugsy then
@@ -244,7 +244,7 @@ let rec run_mugsy_jobs options depth nucmer_job_map = function
 and process_mugsy_leaf options depth nucmer_job_map (l, r) =
   let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
   let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
-  let sequences = 
+  let sequences =
     List.append
       left_seqs
       right_seqs
@@ -272,23 +272,23 @@ and process_mugsy_internal options depth nucmer_job_map (l, r) =
       ~f:(fun nucmer -> nucmer.Pm_sge_nucmer.output_delta)
       nucmer_jobs
   in
-  run_mugsy_with_profiles_and_wait 
-    options 
-    depth 
+  run_mugsy_with_profiles_and_wait
+    options
+    depth
     left_mugsy.Pm_sge_mugsy.mugsy_maf
     right_mugsy.Pm_sge_mugsy.mugsy_maf
     nucmer_deltas
 
 let run_tree options tree =
-  let nucmers = 
-    List.sort 
-      ~cmp:(fun (depth1, _) (depth2, _) -> compare depth2 depth1) 
+  let nucmers =
+    List.sort
+      ~cmp:(fun (depth1, _) (depth2, _) -> compare depth2 depth1)
       (Seq.to_list (create_nucmers options 0 tree))
   in
-  let nucmers_chunked = 
-    nucmers |> 
-	Seq.of_list |> 
-	    Seq.chunk options.nucmer_chunk_size |> 
+  let nucmers_chunked =
+    nucmers |>
+	Seq.of_list |>
+	    Seq.chunk options.nucmer_chunk_size |>
 		Seq.to_list
   in
   lwt nucmer_job_map = run_nucmer_chunks options nucmers_chunked in
@@ -301,7 +301,7 @@ let run_sge argv =
   Shell.mkdir_p options.sequence_dir;
   let sequences = rewrite_sequences options.sequences options.sequence_dir in
   let guide_tree = Mugsy_guide_tree.guide_tree_of_sequences sequences in
-  let final_maf = Lwt_main.run (run_tree options guide_tree >>= 
+  let final_maf = Lwt_main.run (run_tree options guide_tree >>=
 				  fun m -> Copy_file.copy_file m.Pm_sge_mugsy.mugsy_maf options.out_maf)
   in
   print_endline final_maf

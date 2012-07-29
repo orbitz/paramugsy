@@ -1,15 +1,12 @@
-open Lwt
+open Core_extended.Std
+open Async.Std
 
-let copy_file in_file out_file = 
-  Lwt_process.exec 
-    ~stdin:`Close 
-    ~stdout:`Dev_null 
-    (Lwt_process.shell 
-       (Printf.sprintf "cp %s %s" in_file out_file)) >>= fun _ -> Lwt.return out_file
+let copy_file in_file out_file =
+  Async_cmd.get_output ~text:"" ~prog:"cp" ~args:[in_file; out_file] >>= (function
+    | Result.Ok _      -> Deferred.return (Result.Ok out_file)
+    | Result.Error err -> Deferred.return (Result.Error err))
 
 let mkdir_p dir =
-  Lwt_process.exec
-    ~stdin:`Close
-    ~stdout:`Close
-    (Lwt_process.shell
-       (Printf.sprintf "mkdir -p %s" dir)) >>= fun _ -> Lwt.return dir
+  Async_cmd.get_output ~text:"" ~prog:"mkdir" ~args:["-p"; dir] >>= (function
+    | Result.Ok _      -> Deferred.return (Result.Ok dir)
+    | Result.Error err -> Deferred.return (Result.Error err))
