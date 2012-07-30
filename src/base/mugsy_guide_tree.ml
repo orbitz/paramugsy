@@ -25,7 +25,7 @@ let rec mugsy_tree_of_newick_tree = function
     H_taxonomic_unit (mugsy_tree_of_newick_tree t1, mugsy_tree_of_newick_tree t2)
   | Newick.Newick _ ->
     raise (Failure "Not a binary Newick tree!")
-  
+
 let rec tree_depth = function
   | Taxonomic_unit _ ->
     0
@@ -39,7 +39,7 @@ let branch_depths = function
     (tree_depth t1, tree_depth t2)
 
 
-let load_guide_tree sin = 
+let load_guide_tree sin =
   let rec char_stream_of_string_stream stream =
     match Seq.next stream with
       | Some s ->
@@ -73,4 +73,4 @@ let guide_tree_of_sequences sequences =
   let seqs = String.concat ~sep:"\n" sequences ^ "\n" in
   let path_map = List.map ~f:(fun s -> (Fileutils.basename s, s)) sequences in
   let tree = Shell.sh_lines ~echo:true ~input:seqs "strip_sequences.sh | muscle -clusteronly -tree1 - -maxmb 99999999" in
-  map ~f:(flip List.assoc path_map) (load_guide_tree (Seq.of_list tree))
+  map ~f:(List.Assoc.find ~equal:(=) path_map) (load_guide_tree (Seq.of_list tree))
