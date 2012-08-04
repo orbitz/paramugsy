@@ -1,4 +1,23 @@
+(*
+ * We want the ability to have multiple backends to processing input data
+ * but we don't want them to have to worry about how to construct the work.
+ * This module takes the input and constructs three pieces of information:
+ *
+ * 1) A tree describing how the input should be processed.  This tree
+ *    consists of three types of work:
+ *    Mugsy_profile - A profile run between two previous processed inputs
+ *    Mugsy         - A mugsy run against some some genomes
+ *    Fake_mugsy    - If there is only 1 genome this fakes a Mugsy run
+ *
+ * 2) List of nucmers to run, in the order that they will be needed if the
+ *    above tree is executed depth-first
+ *
+ * 3) The above two structures all reference genomes by their a name, a mapping
+ *    of genome name to the filename is also provided.
+ *)
 open Core_extended.Std
+
+module Genome_map = Map.Make(String)
 
 type genome = string
 
@@ -10,8 +29,9 @@ type job_tree =
   | Mugsy of pairwise list
   | Fake_mugsy of genome
 
-type t = { job_tree : job_tree
-	 ; pairwise : pairwise list
+type t = { job_tree   : job_tree
+	 ; pairwise   : pairwise list
+	 ; genome_map : string Genome_map.t
 	 }
 
 let cross left_seqs right_seqs =
@@ -66,9 +86,16 @@ let mk_nucmer max_seqs guide_tree =
   in
   mk_nucmer_from_list sequences
 
+let create_genome_map sequences _ =
+  List.fold_left
+    ~f:(fun acc s -> Genome_map.add (Fileutils.basename s) s acc)
+    ~init:Genome_map.empty
+    sequences
+
 let make_job max_seqs sequences =
   let guide_tree = Mugsy_guide_tree.guide_tree_of_sequences sequences
   in
-  { job_tree = mk_job max_seqs guide_tree
-  ; pairwise = mk_nucmer max_seqs guide_tree
+  { job_tree   = mk_job max_seqs guide_tree
+  ; pairwise   = mk_nucmer max_seqs guide_tree
+  ; genome_map = create_genome_map sequences guide_tree
   }
