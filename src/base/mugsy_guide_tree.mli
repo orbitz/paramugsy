@@ -1,3 +1,5 @@
+open Core_extended.Std
+
 type 'a phylogenetic_binary_tree =
   | Taxonomic_unit of 'a
   | H_taxonomic_unit of ('a phylogenetic_binary_tree * 'a phylogenetic_binary_tree)

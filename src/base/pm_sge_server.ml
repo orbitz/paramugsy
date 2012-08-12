@@ -20,12 +20,34 @@ type msg =
   | Status of (name * job_status Ivar.t)
   | Ack of name
 
-type t = { job_map : job_id Job_map.t
+type t = { job_map : (job_state * job_id) Job_map.t
 	 ; mq      : msg Tail.t
 	 }
 
+let list_of_map m = Job_map.fold (fun k v a -> (k, v)::a) m []
+
+let is_job_running id =
+  
+
+let update_job_id id =
+  is_job_running id >>= function
+    | true -> Deferred.return (`Running, id)
+    | false -> get_done_job_state id
+
+let update_job = function
+  | (`Pending, id)   -> update_job_id id
+  | (`Running, id)   -> update_job_id id
+  | (`Completed, id) -> Deferred.return (`Completed, id)
+  | (`Failed, id)    -> Deferred.return (`Failed, id)
+
 let rec loop s =
-  ()
+  choose
+    [ choice (Stream.next (Tail.collect s.mq)) (handle_msg_wrapper s)
+    ; choice (after (sec 30.)) (fun () -> refresh_jobs s)
+    ]
+and handle_msg_wrapper s = function
+  | Stream.Nil         -> Deferred.return ()
+  | Stream.Cons (m, _) -> handle_msg s m
 and handle_msg s = function
   | Run (n, q, script, retv) -> raise (Failure "not_implemented")
   | Status (n, retv) -> begin
@@ -41,7 +63,11 @@ and handle_msg s = function
   | Ack n ->
     Deferred.return {s with job_map = Job_map.remove n s.job_map}
 and refresh_jobs s =
-  raise (Failure "not_implemented")
+  let jobs = list_of_map s.job_map
+  in
+  Deferred.List.map
+    ~f:update_job
+    jobs
 
 let start_loop = loop
 

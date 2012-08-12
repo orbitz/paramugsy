@@ -1,4 +1,4 @@
-module Genome_map = Map.Make(Core_extended.Std.String)
+open Core_extended.Std
 
 type genome = string
 
@@ -12,7 +12,7 @@ type job_tree =
 
 type t = { job_tree   : job_tree
 	 ; pairwise   : pairwise list
-	 ; genome_map : string Genome_map.t
+	 ; genome_map : string Map.Make(String).t
 	 }
 
 val make_job : int -> genome list -> t
