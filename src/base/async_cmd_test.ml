@@ -4,17 +4,22 @@ open Async.Std
 let never_returns = Core.Std.never_returns
 
 let async_cmd_get_output_test () =
+  Printf.printf "THIS?\n";
   Async_cmd.get_output ~text:"" ~prog:"echo" ~args:["ls"; "foo"] >>= function
     | Result.Ok (stdout, stderr) -> begin
       Printf.printf "Stdout: %s\nStderr: %s\n" stdout stderr;
       Deferred.return ()
     end
-    | Result.Error (`Exit_non_zero exit_code) -> begin
+    | Result.Error (`Exited exit_code) -> begin
       Printf.printf "Error - exit_code: %d\n" exit_code;
       Deferred.return ()
     end
     | Result.Error (`Signal s) -> begin
-      Printf.printf "Error - signal: %s\n" (Core.Signal.to_string s);
+      Printf.printf "Error - signal: %d\n" s;
+      Deferred.return ()
+    end
+    | Result.Error `Unknown -> begin
+      Printf.printf "Error - unknown\n";
       Deferred.return ()
     end
 
@@ -25,5 +30,6 @@ let test () =
 
 
 let () =
+  Printf.printf "What now?\n";
   test ();
   never_returns (Scheduler.go ())
