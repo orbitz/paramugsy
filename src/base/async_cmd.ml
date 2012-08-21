@@ -13,14 +13,22 @@ type t = { pid    : pid
 type cmd_exit = [ `Exited of int | `Signal of int | `Unknown ]
 
 let read_all r =
-  let rec read_all' s =
+  let b = Buffer.create 1024
+  in
+  let rec read_all' () =
     let str = String.create 4096
     in
     Reader.read r str >>= (function
-      | `Ok n -> read_all' (s ^ str)
-      | `Eof  -> begin let _ = Reader.close r in Deferred.return s end)
+      | `Ok n -> begin
+	Buffer.add_substring b str 0 n;
+	read_all' ()
+      end
+      | `Eof  -> begin
+	let _ = Reader.close r in
+	Deferred.return (Buffer.contents b)
+      end)
   in
-  read_all' ""
+  read_all' ()
 
 let wait pi =
   In_thread.run
@@ -41,11 +49,14 @@ let run ~prog ~args =
   let pid =
     OUnix.create_process
       prog
-      (Array.of_list args)
+      (Array.of_list (prog::args))
       c_stdin
       c_stdout
       c_stderr
   in
+  OUnix.close c_stdin;
+  OUnix.close c_stdout;
+  OUnix.close c_stderr;
   let module K = Async.Std.Fd.Kind
   in
   Deferred.return
@@ -56,16 +67,12 @@ let run ~prog ~args =
     }
 
 let get_output ~text ~prog ~args =
-  Printf.printf "this?\n";
   run ~prog:prog ~args:args >>= fun pi ->
-  Printf.printf "bar\n";
   (* Writer.write pi.stdin text; *)
   let _ = Writer.close pi.stdin
   in
-  Printf.printf "foo\n";
   wait pi >>= (function
     | `Exited 0 -> begin
-      Printf.printf "Exited ok\n";
       (Deferred.both (read_all pi.stdout) (read_all pi.stderr)) >>= (fun
 	(stdout, stderr) ->
 	  Deferred.return (Result.Ok (stdout, stderr)))
