@@ -2,10 +2,10 @@ CAMLP4=-pp "camlp4o pa_extend.cmo"
 OCAMLC_OPTS=-package str,core_extended,async,seq,ocaml_bio
 
 sources=global_state.ml m_rewrite_fasta.ml async_cmd.ml copy_file.ml \
-	mugsy_guide_tree.ml pm_job.ml
+	mugsy_guide_tree.ml pm_job.ml pm_sge_server.ml
 
 sources_mli=global_state.mli m_rewrite_fasta.mli mugsy_guide_tree.mli \
-	pm_job.mli async_cmd.mli
+	pm_job.mli async_cmd.mli pm_sge_server.mli
 
 native_cmx=$(sources:%.ml=%.cmx)
 
@@ -16,7 +16,7 @@ native_cmi=$(sources_mli:%.mli=%.cmi)
 all: native-code
 
 native-code: $(native_cmx)
-	ocamlfind ocamlopt $(OCAMLC_OPTS) -thread -custom -linkpkg -o paramugsy $(native_cmx)
+	ocamlfind ocamlopt $(OCAMLC_OPTS) -thread -linkpkg -o paramugsy $(native_cmx)
 
 $(native_cmx): $(sources) $(native_cmi)
 

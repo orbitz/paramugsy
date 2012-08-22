@@ -16,6 +16,7 @@
  *    of genome name to the filename is also provided.
  *)
 open Core_extended.Std
+open Ort
 
 module Genome_map = Map.Make(String)
 
