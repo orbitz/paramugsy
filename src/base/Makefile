@@ -4,12 +4,12 @@ OCAMLC_OPTS=-package str,core_extended,async,seq,ocaml_bio
 tests=async_cmd_test pm_file_test
 
 sources=global_state.ml m_rewrite_fasta.ml async_cmd.ml copy_file.ml \
-	pm_file.ml \
-	mugsy_guide_tree.ml pm_job.ml pm_sge_server.ml
+	pm_file.ml mugsy_guide_tree.ml pm_job.ml \
+	pm_sge_server.ml
 
-sources_mli=global_state.mli m_rewrite_fasta.mli mugsy_guide_tree.mli \
-	pm_file.mli \
-	pm_job.mli async_cmd.mli pm_sge_server.mli
+sources_mli=global_state.mli m_rewrite_fasta.mli async_cmd.mli \
+	pm_file.mli mugsy_guide_tree.mli pm_job.mli \
+	pm_sge_server.mli
 
 native_cmx=$(sources:%.ml=%.cmx)
 
@@ -22,9 +22,6 @@ all: native-code
 native-code: $(native_cmx)
 	ocamlfind ocamlopt $(OCAMLC_OPTS) -thread -linkpkg -o paramugsy $(native_cmx)
 
-$(native_cmx): $(sources) $(native_cmi)
-
-$(native_cmi): $(sources_mli)
 
 test: $(tests)
 	./async_cmd_test
@@ -44,5 +41,22 @@ pm_file_test.cmx: pm_file_test.ml
 
 clean:
 	-rm paramugsy $(tests) *.cmi *.cmx *.cmo *.o
+
+
+# Dependencies
+pm_sge_server.cmx: pm_sge_server.cmi
+
+async_cmd.cmx: async_cmd.cmi
+
+pm_file.cmx: pm_file.cmi
+
+mugsy_guide_tree.cmx: mugsy_guide_tree.cmi
+
+global_state.cmx: global_state.cmi
+
+m_rewrite_fasta.cmx: m_rewrite_fasta.cmi
+
+pm_job.cmx: pm_job.cmi
+
 
 -include ../Ocamlrules.mk.in

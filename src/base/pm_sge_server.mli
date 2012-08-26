@@ -6,7 +6,7 @@ type name        = string
 type queue       = string
 
 type run_success = unit
-type run_error   = Script_not_found | Qsub_error
+type run_error   = Qsub_error
 type job_running = Pending | Running
 type job_done    = Completed | Failed
 

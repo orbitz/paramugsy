@@ -10,7 +10,7 @@ type queue  = string
 type job_id = string
 
 type run_success = unit
-type run_error   = Script_not_found | Qsub_error
+type run_error   = Qsub_error
 type job_running = Pending | Running
 type job_done    = Completed | Failed
 
@@ -35,6 +35,22 @@ let map_of_list =
     ~f:(fun m (k, v) -> Job_map.add k v m)
     ~init:Job_map.empty
 
+(*
+ * Map, y u no come with this?!?!
+ * I should look into using Core's
+ * polymorphic map, though
+ *)
+let fetch k m =
+  try
+    Some (Job_map.find k m)
+  with Not_found ->
+    None
+
+(*
+ * The output of 'qacct' is key-value pairs,
+ * this splits and stripps and returns a list
+ * of typles
+ *)
 let split_lines s =
   let split_and_strip line =
     line
@@ -72,6 +88,15 @@ let is_job_running id =
     | Result.Ok _    -> Deferred.return true
     | Result.Error _ -> Deferred.return false
 
+(*
+ * In SGE, if a job is running or pending it will
+ * show up in the 'qstat' command.  If it is not
+ * there, we check qacct for its exist code.
+ *
+ * Note, this makes 'pending' a useless state, for now,
+ * since we just set it when we submit and it will be
+ * marked as 'running' as soon as we do the first update.
+ *)
 let update_job_id id =
   is_job_running id >>= function
     | true -> Deferred.return (R Running, id)
@@ -87,6 +112,12 @@ let update_job (k, v) =
   update_job_v v >>= fun r ->
   Deferred.return (k, r)
 
+(*
+ * Kicks off an Update_jobs message every
+ * 30 seconds.  There is no pusback on this
+ * which may need to be added if updating
+ * a job becomes costly.
+ *)
 let rec refresh_jobs_msg mq =
   after (sec 30.) >>> fun () ->
   if not (Tail.is_closed mq) then begin
@@ -94,30 +125,103 @@ let rec refresh_jobs_msg mq =
     refresh_jobs_msg mq
   end
 
-let rec loop s =
-  (Stream.next (Tail.collect s.mq)) >>= function
-    | Stream.Nil         -> Deferred.return ()
-    | Stream.Cons (m, _) -> handle_msg s m
-and handle_msg s = function
-  | Run (n, q, script, retv) -> raise (Failure "not_implemented")
-  | Status (n, retv) -> begin
-    if Job_map.mem n s.job_map then begin
-      Ivar.fill retv (Some (fst (Job_map.find n s.job_map)));
-      loop s
+(*
+ * Just run a sript in a queue and return
+ * the job id
+ *)
+let qsub_cmd queue script =
+  let args =
+    [ "-o"; "/mnt/scratch"
+    ; "-e"; "/mnt/scratch"
+    ; "-S"; "/bin/sh"
+    ; "-b"; "n"
+    ; "-sync"; "n"
+    ; "-q"; queue
+    ; script]
+  in
+  Async_cmd.get_output ~text:"" ~prog:"qsub" ~args:args >>= function
+    | Result.Ok (stdout, _) -> begin
+      match String.split_on_chars ~on:[' '] stdout with
+	| "Your"::"job"::job_id::_ ->
+	  Deferred.return (Result.Ok job_id)
+	| _ ->
+	  Deferred.return (Result.Error Qsub_error)
     end
-    else begin
+    | Result.Error _ ->
+      Deferred.return (Result.Error Qsub_error)
+
+(*
+ * Runs a qsub command
+ *)
+let handle_run (n, q, script, retv) s =
+  qsub_cmd q script >>= function
+    | Result.Ok job_id -> begin
+      Ivar.fill retv (Result.Ok ());
+      let job_map = Job_map.add n (R Pending, job_id) s.job_map
+      in
+      Deferred.return {s with job_map = job_map}
+    end
+    | Result.Error err -> begin
+      Ivar.fill retv (Result.Error err);
+      Deferred.return s
+    end
+
+(*
+ * Returns the status of a job in the job map
+ *)
+let handle_status (n, retv) s =
+  match fetch n s.job_map with
+    | Some (state, _id) -> begin
+      Ivar.fill retv (Some state);
+      s
+    end
+    | None -> begin
       Ivar.fill retv None;
-      loop s
+      s
     end
-  end
-  | Update_jobs -> refresh_jobs s
-  | Ack n ->
-    loop {s with job_map = Job_map.remove n s.job_map}
-and refresh_jobs s =
+
+(*
+ * A timer will kick this off every 30 seconds,
+ * so hopefully this takes less than 30 seconds
+ * execute (no pushback yet).
+ *
+ * This updates the state of all running jobs
+ * in the map.
+ *)
+let handle_update_jobs s =
   let jobs = list_of_map s.job_map
   in
   Deferred.List.map ~f:update_job jobs >>= fun l ->
-  loop {s with job_map = map_of_list l}
+  Deferred.return {s with job_map = map_of_list l}
+
+(*
+ * Acking a message deletes it from the list
+ * only if it is Completed or Failed
+ *)
+let handle_ack n s =
+  match fetch n s.job_map with
+    | Some (D Completed, _)
+    | Some (D Failed, _) ->
+      {s with job_map = Job_map.remove n s.job_map}
+    | _ ->
+      s
+
+(*
+ * Message dispatcher
+ *)
+let handle_msg s = function
+  | Run msg     -> handle_run msg s
+  | Status msg  -> Deferred.return (handle_status msg s)
+  | Update_jobs -> handle_update_jobs s
+  | Ack n       -> Deferred.return (handle_ack n s)
+
+(*
+ * Message event loop
+ *)
+let rec loop s =
+  (Stream.next (Tail.collect s.mq)) >>= function
+    | Stream.Nil         -> Deferred.return ()
+    | Stream.Cons (m, _) -> handle_msg s m >>= loop
 
 let start_loop = loop
 
