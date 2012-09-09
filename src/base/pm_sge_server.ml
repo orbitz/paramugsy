@@ -18,6 +18,7 @@ type job_status  = R of job_running | D of job_done
 
 type msg =
   | Run of (name * queue * Fileutils.file_path * (run_success, run_error) Result.t Ivar.t)
+  | Stop
   | Status of (name * job_status option Ivar.t)
   | Update_jobs
   | Ack of name
@@ -211,6 +212,7 @@ let handle_ack n s =
  *)
 let handle_msg s = function
   | Run msg     -> handle_run msg s
+  | Stop        -> begin Tail.close_if_open s.mq; Deferred.return s end
   | Status msg  -> Deferred.return (handle_status msg s)
   | Update_jobs -> handle_update_jobs s
   | Ack n       -> Deferred.return (handle_ack n s)
@@ -226,7 +228,9 @@ let rec loop s =
 let start_loop = loop
 
 (*
+ * **************************************************
  * API
+ * **************************************************
  *)
 let start () =
   let s = { job_map = Job_map.empty
@@ -237,6 +241,10 @@ let start () =
   let _ = start_loop s
   in
   s
+
+let stop s =
+  Tail.extend s.mq Stop;
+  Deferred.return ()
 
 let run ~n ~q script s =
   let ret = Ivar.create ()

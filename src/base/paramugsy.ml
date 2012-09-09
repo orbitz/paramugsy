@@ -13,34 +13,22 @@ type sge_mode = { sge_out_dir : file_path
 		; data_host : string
 		}
 
-type ergatis_mode = unit
-
-type parallel_mode =
-  | Sge of sge_mode
-  | Ergatis of ergatis_mode
-
-
-let lsplit_once ~on s =
-  match String.lsplit2 ~on:on s with
-    | Some (v, _) -> v
-    | None -> s
-
 let usage = ""
 
-let run_mode_argv argv = 
+let run_mode_argv argv =
   match argv.(0) with
     | "sge" ->
-      Pm_sge.run_sge argv
+      Pm_sge_main.run argv
     | "ergatis" ->
-      Pm_ergatis.run_ergatis argv
+      raise (Failure "Not implemented yet")
     | _ -> begin
       print_endline usage;
       exit 1
     end
 
 
-let main () = 
-  run_mode_argv 
+let main () =
+  run_mode_argv
     (Sys.argv |> Array.to_list |> List.tl_exn |> Array.of_list)
 
 

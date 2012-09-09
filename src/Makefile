@@ -18,6 +18,7 @@ SEQ_INSTALL_FILES = ort_seq.mli ort_seq.cmi \
 	seq.cma seq.cmxa seq.a
 
 .PHONY: all clean $(SUBDIRS) $(subdirs_clean) \
+	seq ocaml_bio seq_lcean ocaml_bio_clean
 
 all: $(SUBDIRS)
 
@@ -39,6 +40,8 @@ $(SUBDIRS):
 $(subdirs_clean):
 	$(MAKE) -C $(patsubst %_clean,%,$@) clean
 
+
+ocaml-bio: seq
 
 # Depend on the META begin there so we don't
 # try to install every time

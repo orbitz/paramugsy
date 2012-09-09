@@ -1,10 +1,11 @@
 OCAMLPATH:=$(PWD)/src:$(OCAMLPATH)
 
-.PHONY: all native byte debug clean \
+.PHONY: all clean \
 	setup core-install get-deps get-ocaml-bio get-ocaml-seq \
 	clean-deps
 
-all: native
+all:
+	$(MAKE) -C src
 
 setup: get-deps
 
@@ -22,15 +23,6 @@ get-ocaml-seq:
 clean-deps:
 	rm -rf src/ocaml-bio
 	rm -rf src/ocaml-seq
-
-native:
-	$(MAKE) -C src native
-
-byte:
-	$(MAKE) -C src byte
-
-debug:
-	$(MAKE) -C src debug
 
 clean:
 	$(MAKE) -C src clean

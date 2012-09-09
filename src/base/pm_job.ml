@@ -32,7 +32,7 @@ type job_tree =
 
 type t = { job_tree   : job_tree
 	 ; pairwise   : pairwise list
-	 ; genome_map : string Genome_map.t
+	 ; genome_map : Fileutils.file_path Genome_map.t
 	 }
 
 let cross left_seqs right_seqs =
@@ -55,6 +55,8 @@ let uniq = List.filter ~f:not_equal
 let split len l =
   (List.take l (len/2), List.drop l (len/2))
 
+let genome_from_file = Fileutils.basename
+
 let mk_job max_seqs guide_tree =
   let rec mk_job_from_list l =
     match List.length l with
@@ -67,7 +69,10 @@ let mk_job max_seqs guide_tree =
 	in
 	Mugsy_profile (mk_job_from_list left, mk_job_from_list right)
   in
-  let sequences = Mugsy_guide_tree.list_of_guide_tree guide_tree
+  let sequences =
+    List.map
+      ~f:genome_from_file
+      (Mugsy_guide_tree.list_of_guide_tree guide_tree)
   in
   mk_job_from_list sequences
 
@@ -83,7 +88,10 @@ let mk_nucmer max_seqs guide_tree =
 	in
 	(mk_nucmer_from_list l) @ (cross left right)
   in
-  let sequences = Mugsy_guide_tree.list_of_guide_tree guide_tree
+  let sequences =
+    List.map
+      ~f:genome_from_file
+      (Mugsy_guide_tree.list_of_guide_tree guide_tree)
   in
   mk_nucmer_from_list sequences
 
@@ -100,3 +108,36 @@ let make_job max_seqs sequences =
   ; pairwise   = mk_nucmer max_seqs guide_tree
   ; genome_map = create_genome_map sequences guide_tree
   }
+
+
+let rec pp_nucmers fout = function
+  | [] ->
+    ()
+  | (s1, s2)::ss -> begin
+    Printf.fprintf fout "(%s, %s)\n" s1 s2;
+    pp_nucmers fout ss
+  end
+
+let pp_job_tree fout job_tree =
+  let rec pp_job_tree' depth tree =
+    Printf.fprintf fout "Depth: %d\n" depth;
+    match tree with
+      | Nil ->
+	()
+      | Mugsy_profile (left, right) -> begin
+	pp_job_tree' (depth + 1) left;
+	pp_job_tree' (depth + 1) right
+      end
+      | Mugsy pairwise ->
+	(* Not really nucmers but same structure *)
+	pp_nucmers fout pairwise
+      | Fake_mugsy genome ->
+	Printf.fprintf fout "Fake mugsy: %s\n" genome
+  in
+  pp_job_tree' 0 job_tree
+
+let pp fout jt =
+  output_string fout "Numcers:\n";
+  pp_nucmers fout jt.pairwise;
+  output_string fout "Job tree:\n";
+  pp_job_tree fout jt.job_tree

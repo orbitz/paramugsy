@@ -16,3 +16,4 @@ type t = { job_tree   : job_tree
 	 }
 
 val make_job : int -> genome list -> t
+val pp       : out_channel -> t -> unit

@@ -13,7 +13,6 @@ type 'a phylogenetic_binary_tree =
 
 type mugsy_tree = string phylogenetic_binary_tree
 
-
 let rec mugsy_tree_of_newick_tree = function
   | Newick.Leaf (name, _distance) ->
     Taxonomic_unit name
@@ -70,7 +69,19 @@ let rec map ~f = function
  * guide tree will correspond to the names of the files
  *)
 let guide_tree_of_sequences sequences =
-  let seqs = String.concat ~sep:"\n" sequences ^ "\n" in
-  let path_map = List.map ~f:(fun s -> (Fileutils.basename s, s)) sequences in
-  let tree = Shell.sh_lines ~echo:true ~input:seqs "strip_sequences.sh | muscle -clusteronly -tree1 - -maxmb 99999999" in
-  map ~f:(List.Assoc.find_exn ~equal:(=) path_map) (load_guide_tree (Seq.of_list tree))
+  let seqs = String.concat ~sep:"\n" sequences ^ "\n"
+  in
+  let path_map =
+    List.map
+      ~f:(fun s -> (Fileutils.basename s, s))
+      sequences
+  in
+  let tree =
+    Shell.sh_lines
+      ~echo:true
+      ~input:seqs
+      "strip_sequences.sh | muscle -clusteronly -tree1 - -maxmb 99999999"
+  in
+  map
+    ~f:(List.Assoc.find_exn ~equal:(=) path_map)
+    (load_guide_tree (Seq.of_list tree))

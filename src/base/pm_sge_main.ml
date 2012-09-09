@@ -1,4 +1,3 @@
-(*pp camlp4o `ocamlfind query -i-format lwt` `ocamlfind query -predicates syntax,preprocessor -a-format -r lwt.syntax` *)
 open Core_extended
 open Core_extended.Std
 open Lwt
@@ -142,32 +141,6 @@ let rewrite_sequences sequences tmp_dir =
   in
   Shell.mkdir_p tmp_dir;
   List.map ~f:rewrite_sequence sequences
-
-let searches left_seqs right_seqs =
-  let inner_fold acc e =
-    List.fold_left
-      ~f:(fun acc' e' ->
-	(e, e')::acc')
-      ~init:acc
-      right_seqs
-  in
-  List.fold_left
-    ~f:inner_fold
-    ~init:[]
-    left_seqs
-
-let basename_of_search (r, q) =
-  (Fileutils.basename r, Fileutils.basename q)
-
-let sge_options_of_options priority options =
-  { Pm_sge_utils.priority = priority
-  ; Pm_sge_utils.template_file = options.template_file
-  ; Pm_sge_utils.tmp_dir = options.tmp_dir
-  ; Pm_sge_utils.script_dir = options.tmp_dir
-  ; Pm_sge_utils.exec_queue = options.exec_q
-  ; Pm_sge_utils.data_queue = options.staging_q
-  ; Pm_sge_utils.out_dir = options.out_dir
-  }
 
 (*
  * Takes a tree and converts it into a flat [(priority * (nucmer_seq * nucmer_seq)) sge_command list]
@@ -330,12 +303,15 @@ let run_tree options tree =
   run_mugsy_jobs options 0 nucmer_job_map tree
 
 let run argv =
-  let options = parse_argv argv in
+  let options = parse_argv argv
+  in
   Shell.mkdir ~p:() options.out_dir;
   Shell.mkdir ~p:() options.tmp_dir;
   Shell.mkdir ~p:() options.sequence_dir;
-  let sequences = rewrite_sequences options.sequences options.sequence_dir in
-  let guide_tree = Mugsy_guide_tree.guide_tree_of_sequences sequences in
+  let sequences = rewrite_sequences options.sequences options.sequence_dir
+  in
+  let job = Pm_job.make_job options.seqs_per_mugsy sequences
+  in
   let final_maf = Lwt_main.run (run_tree options guide_tree >>=
 				  fun m -> Copy_file.copy_file m.Pm_sge_mugsy.mugsy_maf options.out_maf)
   in

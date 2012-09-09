@@ -15,6 +15,7 @@ type job_status  = R of job_running | D of job_done
 type t
 
 val start : unit -> t
+val stop  : t -> unit Deferred.t
 
 val run :
   n:name ->
