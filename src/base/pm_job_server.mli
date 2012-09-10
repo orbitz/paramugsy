@@ -16,4 +16,4 @@ val stop  : t -> unit Deferred.t
  * Runs a job with a priority (higher runs sooner)
  * and blocks until the job is done
  *)
-val run : priority -> Pm_qsub.t -> job_result Deferred.t
+val run : priority -> Pm_qsub.t -> t -> job_result Deferred.t
