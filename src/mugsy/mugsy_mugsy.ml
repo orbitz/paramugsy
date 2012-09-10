@@ -105,9 +105,14 @@ let rewrite_sequences fname seqs =
   close_out fout
 
 let fasta_of_maf options fname mafs =
-  List.iter 
-    ~f:(fun maf -> 
-      Shell.sh ~verbose:options.debug ~echo:options.debug "mugsy_profiles maf_to_xmfa -in_maf %s >> %s" maf fname) 
+  List.iter
+    ~f:(fun maf ->
+      Shell.sh
+	~verbose:options.debug
+	~echo:options.debug
+	"mugsy_profiles maf_to_xmfa -in_maf %s >> %s"
+	maf
+	fname)
     mafs
 
 let write_dups options fname dups =
@@ -124,12 +129,21 @@ let mugsy options fname all_fasta pw_fasta pw_dupsfasta =
     | Some l when l <> [] -> Printf.sprintf ",%s --duplications true" pw_dupsfasta
     | _ -> ""
   in
-  Shell.sh ~verbose:options.debug ~echo:options.debug 
-    "mugsyWGA --outfile %s --seq %s --aln %s%s --distance %d --minlength %d %s %s > %s.stdout 2> %s.stderr" 
-    fname all_fasta pw_fasta dups_opt options.distance options.minlength colinear_opt unique_opt fname fname;
+  Shell.sh ~verbose:options.debug ~echo:options.debug
+    "mugsyWGA --outfile %s --seq %s --aln %s%s --distance %d --minlength %d %s %s > %s.stdout 2> %s.stderr"
+    fname
+    all_fasta
+    pw_fasta
+    dups_opt
+    options.distance
+    options.minlength
+    colinear_opt
+    unique_opt
+    fname
+    fname;
   fname ^ ".maf"
-  
-let rm fname = 
+
+let rm fname =
   try
     Shell.rm fname
   with
@@ -138,7 +152,7 @@ let rm fname =
 
 let main () =
   let options = parse_argv () in
-  Shell.mkdir_p options.out_dir;
+  Shell.mkdir ~p:() options.out_dir;
   let prefix = Printf.sprintf "%s/%s" options.out_dir options.basename in
   let all_fasta = Printf.sprintf "%s.all.fsa" prefix in
   let pw_fasta = Printf.sprintf "%s.xmfa" prefix in

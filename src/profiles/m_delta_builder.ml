@@ -52,16 +52,16 @@ let add_offset ~offset db =
   }
 
 let to_delta db =
-  let gaps_of_metaprofile_gaps mp = 
-    List.map ~f:(M_range.lift ~f:(fun (s, e) -> (M_profile.int_of_profile_idx 
-						   (M_metaprofile.profile_idx_of_profile_idx mp 
-						      (M_profile.profile_idx_of_int s)),
-						 M_profile.int_of_profile_idx 
-						   (M_metaprofile.profile_idx_of_profile_idx mp 
-						      (M_profile.profile_idx_of_int e)))))
-  in
+  (* let gaps_of_metaprofile_gaps mp = *)
+  (*   List.map ~f:(M_range.lift ~f:(fun (s, e) -> (M_profile.int_of_profile_idx *)
+  (* 						   (M_metaprofile.profile_idx_of_profile_idx mp *)
+  (* 						      (M_profile.profile_idx_of_int s)), *)
+  (* 						 M_profile.int_of_profile_idx *)
+  (* 						   (M_metaprofile.profile_idx_of_profile_idx mp *)
+  (* 						      (M_profile.profile_idx_of_int e))))) *)
+  (* in *)
   if db.ref_start <> db.ref_pos && db.query_start <> db.query_pos then
-    let query_start = 
+    let query_start =
       M_metaprofile.profile_idx_of_profile_idx
 	db.query_metaprofile
 	db.query_start

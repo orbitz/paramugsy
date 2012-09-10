@@ -22,7 +22,7 @@ let maf_of_fasta in_fasta =
       | Some (Fasta.Header _) ->
 	Some (sin
 		 |> Seq.take_while ~f:(function | Fasta.Header _ -> false | Fasta.Sequence _ -> true)
-		 |> Seq.fold ~f:(fun a -> function 
+		 |> Seq.fold ~f:(fun a -> function
 		     | Fasta.Sequence s -> a + String.length (remove_newlines s)
 		     | _ -> raise (Failure "This should never happen")) ~init:0)
       | _ -> None
@@ -37,7 +37,7 @@ let maf_of_fasta in_fasta =
   let write_next_seq len sin =
     match Seq.next sin with
       | Some (Fasta.Header h) -> begin
-	let seqs = (sin 
+	let seqs = (sin
 		       |> Seq.take_while ~f:(function | Fasta.Header _ -> false | Fasta.Sequence _ -> true)
 		       |> Seq.map ~f:(function | Fasta.Sequence s -> (remove_newlines s) | _ -> raise (Failure "OMGBBQ"))
 		       |> Seq.to_list)
@@ -71,9 +71,9 @@ let usage = ""
 let parse_argv argv =
   let in_fasta = ref "" in
   let out_maf = ref "" in
-  
+
   let params =
-    Arg.align [ "-in_fasta", Arg.Set_string in_fasta, "Path Path to input fasta file" 
+    Arg.align [ "-in_fasta", Arg.Set_string in_fasta, "Path Path to input fasta file"
 	      ; "-out_maf", Arg.Set_string out_maf, "Path Path to output MAF file"
 	      ]
   in
@@ -90,7 +90,7 @@ let parse_argv argv =
 
 let main argv =
   let options = parse_argv argv in
-  Shell.mkdir_p (Fileutils.dirname options.out_maf);
+  Shell.mkdir ~p:() (Fileutils.dirname options.out_maf);
   let fout = open_out options.out_maf in
   let rec print_lines sin =
     match Seq.next sin with

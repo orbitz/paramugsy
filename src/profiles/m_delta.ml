@@ -1,6 +1,5 @@
 (*pp camlp4o *)
 open Core_extended.Std
-open Core_extended.Function
 open Ort
 open Ort.Function
 
@@ -13,9 +12,11 @@ type t = { sequences : (Ort.Fileutils.file_path * Ort.Fileutils.file_path)
 	 ; query_gaps : M_range.t list
 	 }
 
+let ($) g h x = g (h x)
+
 let parse_gaps gaps =
   let rec squeeze_gaps' last = function
-    | [] -> 
+    | [] ->
       [(last, last)]
     | x::xs when x - last = 1 ->
       gap_run last x xs
@@ -88,10 +89,10 @@ let parse_delta_stream sin =
       | Some l -> begin
 	match String.split_on_chars ~on:[' '] l with
 	  | [r_start; r_end; q_start; q_end; e1; e2; e3] ->
-	    read_gaps 
-	      (sequences, 
-	       delta_type, 
-	       header, 
+	    read_gaps
+	      (sequences,
+	       delta_type,
+	       header,
 	       M_range.of_tuple (int_of_string r_start, int_of_string r_end),
 	       M_range.of_tuple (int_of_string q_start, int_of_string q_end))
 	      sin
@@ -133,10 +134,10 @@ let parse_delta_stream sin =
       | Some l -> begin
 	match String.split_on_chars ~on:[' '] l with
 	  | [r_start; r_end; q_start; q_end; e1; e2; e3] ->
-	    read_gaps 
-	      (sequences, 
-	       delta_type, 
-	       header, 
+	    read_gaps
+	      (sequences,
+	       delta_type,
+	       header,
 	       M_range.of_tuple (int_of_string r_start, int_of_string r_end),
 	       M_range.of_tuple (int_of_string q_start, int_of_string q_end))
 	      sin
@@ -173,7 +174,7 @@ let query_profile_of_delta d =
 
 let deltas_of_gaps d =
   let rec ones = function
-    | 0 -> 
+    | 0 ->
       []
     | n ->
       (1)::ones (n - 1)

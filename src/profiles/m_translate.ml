@@ -1,6 +1,5 @@
 (*pp camlp4o *)
 open Core_extended.Std
-open Core_extended.Function
 open Ort.Function
 open Ort
 
@@ -26,6 +25,8 @@ type gd_state = { ref_profile : M_profile.t
 		; d_profile_end : M_profile.profile_idx
 		}
 
+let ($) g h x = g (h x)
+
 let combinations l1 l2 =
   let rec inner o = function
     | [] ->
@@ -47,7 +48,7 @@ let combinations l1 l2 =
 
 let gap_list_of_lists l1 l2 = (l1, l2)
 
-let cons_gap_range strand gr (r_gaps, q_gaps) = 
+let cons_gap_range strand gr (r_gaps, q_gaps) =
   match strand with
     | `Ref -> (gr::r_gaps, q_gaps)
     | `Query -> (r_gaps, gr::q_gaps)
@@ -66,7 +67,7 @@ let next_nearest_gap ref_s query_s = function
       (Some (`Ref, rr), (rs, qss))
     else
       (Some (`Query, qr), (rss, qs))
-  
+
 
 let read_profile_set dir =
   let profile_name = Fileutils.join [dir; "profiles"] in
@@ -183,13 +184,13 @@ let rec generate_delta_alignments delta_builder gd_state =
 (*   Printf.eprintf "=== ref_profile_pos = %d\n" (M_profile.int_of_profile_idx gd_state.ref_profile_pos); *)
 (*   Printf.eprintf "=== query_metaprofile_pos = %d\n" (M_profile.int_of_profile_idx gd_state.query_metaprofile_pos); *)
 (*   Printf.eprintf "=== d_profile_pos = %d\n" (M_profile.int_of_profile_idx gd_state.d_profile_pos); *)
-  match (next_nearest_gap 
-	   gd_state.ref_profile_pos 
-	   gd_state.query_metaprofile_pos 
+  match (next_nearest_gap
+	   gd_state.ref_profile_pos
+	   gd_state.query_metaprofile_pos
 	   gd_state.profile_gaps,
-	 next_nearest_gap 
-	   gd_state.d_profile_pos 
-	   gd_state.d_profile_pos 
+	 next_nearest_gap
+	   gd_state.d_profile_pos
+	   gd_state.d_profile_pos
 	   gd_state.d_gaps) with
     | ((None, _), (None, _)) -> begin
       (*
@@ -217,30 +218,30 @@ let rec generate_delta_alignments delta_builder gd_state =
        * We just have gaps left in the profiles we are producing alignments for.  In this case we have to
        * produce an alignment under some conditions.  Conditions where we do not want to produce
        * an alignment include:
-       * 
+       *
        * 1 - We are at the start of a new alignment and the first thing we hit is a gap.  In this case
        *     we just want to advance on to creating the next alignment.
        * 2 - We have a situation where a d_gap spans multiple gaps.  For example:
-       * 
+       *
        *     r |-----XX----XX------|
        *     q |-------------------|
        *    dr |----XXXXXXXXXX-----|
        *    dq |-------------------|
-       * 
-       *     In this case, the portion in r between the twp gaps is not actually a valid alignment because 
+       *
+       *     In this case, the portion in r between the twp gaps is not actually a valid alignment because
        *     the other strand is nothing but gaps.  That means we want to throw this alignment away
        *     as well and continue on to the next one.
-       * 
+       *
        * Both of these situations are identifiable through the same method: the distance to the gap will
        * be 0 and one of the strands in the delta will have not moved at all.
        *)
-      let gr_diff = 
+      let gr_diff =
 	match strand with
 	  | `Ref ->
-	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.ref_profile_pos, 
+	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.ref_profile_pos,
 					    e - M_profile.int_of_profile_idx gd_state.ref_profile_pos)) gr
 	  | `Query ->
-	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos, 
+	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos,
 					    e - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos)) gr
       in
 (*       Printf.eprintf "- 2 - %s - (%d, %d) - (%d, %d) - just gr gap\n"  *)
@@ -278,8 +279,8 @@ let rec generate_delta_alignments delta_builder gd_state =
 	  generate_delta_alignments db_new gd_state_new
     end
     | ((None, _), (Some (d_strand, d_gr), d_gaps)) -> begin
-      let d_gr_diff = M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.d_profile_pos, 
-						      e - M_profile.int_of_profile_idx gd_state.d_profile_pos)) d_gr 
+      let d_gr_diff = M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.d_profile_pos,
+						      e - M_profile.int_of_profile_idx gd_state.d_profile_pos)) d_gr
       in
 (*       Printf.eprintf "- 3\n"; *)
       let db_new = M_delta_builder.add_gap ~strand:d_strand ~diff:d_gr_diff delta_builder in
@@ -291,23 +292,23 @@ let rec generate_delta_alignments delta_builder gd_state =
       generate_delta_alignments db_new gd_state_new
     end
     | ((Some (strand, gr), profile_gaps), (Some (d_strand, d_gr), d_gaps)) -> begin
-      let gr_diff = 
+      let gr_diff =
 	match strand with
 	  | `Ref ->
-	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.ref_profile_pos, 
+	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.ref_profile_pos,
 					    e - M_profile.int_of_profile_idx gd_state.ref_profile_pos)) gr
 	  | `Query ->
-	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos, 
+	    M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos,
 					    e - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos)) gr
       in
-      let d_gr_diff = M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.d_profile_pos, 
-						      e - M_profile.int_of_profile_idx gd_state.d_profile_pos)) d_gr 
+      let d_gr_diff = M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.d_profile_pos,
+						      e - M_profile.int_of_profile_idx gd_state.d_profile_pos)) d_gr
       in
       let diff = M_range.get_start gr_diff in
       let d_diff = M_range.get_start d_gr_diff in
       let d_diff_end = M_range.get_end d_gr_diff in
       (*
-       * There are 2 situations here.  
+       * There are 2 situations here.
        * 1 - One is that our gap starts before or at the same offset as
        *     the d_gap.
        * 2 - The d_gap comes before the gap, in that case we need to determine if the d_gap
@@ -374,23 +375,23 @@ let rec generate_delta_alignments delta_builder gd_state =
 	 * In this case the gr gap does not start infront of the d gap
 	 * and the d gap does not finish before the gr gap.  We have some overlap
 	 * between the gr gap and the d gap.  `overlap_opposite_strand` checks to see if
-	 * our d gap is overlapping the gr gap on the opposite strand. If d_strand equals 
-	 * strand then we know that the d gap does not end before the gr gap and that 
-	 * we overlap the opposite strands gap. 
-	 * We need to know this because when we add the d gap, we increment the profile 
-	 * position on the strand opposite of the current gr gap by the total length of 
+	 * our d gap is overlapping the gr gap on the opposite strand. If d_strand equals
+	 * strand then we know that the d gap does not end before the gr gap and that
+	 * we overlap the opposite strands gap.
+	 * We need to know this because when we add the d gap, we increment the profile
+	 * position on the strand opposite of the current gr gap by the total length of
 	 * the d gap.  Consider the situation below:
-	 * 
-	 * 
+	 *
+	 *
 	 *     r |------XX-----------|
 	 *     q |----------XX-------|
 	 *    dr |----XXXXXXXXXX-----|
 	 *    dq |-------------------|
-	 * 
+	 *
 	 * In this case `strand` is r and `d_strand` is r.  If we blindly add the d gap, the following
 	 * positions would look like:
-	 * 
-	 * 
+	 *
+	 *
 	 *     r |------XX-----------|
 	 *            ^
 	 *     q |----------XX-------|
@@ -399,11 +400,11 @@ let rec generate_delta_alignments delta_builder gd_state =
 	 *                      ^
 	 *    dq |-------------------|
 	 *                      ^
-	 * 
+	 *
 	 * We have steped over the gap on the q strand.  Instead what we will do is check to see if the current
 	 * d gap overlaps the next gap on the opposing strand and, if so, break our d gap into 2 gaps.  At the
 	 * end of this function we should look like:
-	 * 
+	 *
 	 *     r |------XX-----------|
 	 *            ^
 	 *     q |----------XX-------|
@@ -418,10 +419,10 @@ let rec generate_delta_alignments delta_builder gd_state =
 	    let gr_opp_diff =
 	      match strand with
 		| `Ref ->
-		  M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos, 
+		  M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos,
 						  e - M_profile.int_of_profile_idx gd_state.query_metaprofile_pos)) gr_opp_gap
 		| `Query ->
-		  M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.ref_profile_pos, 
+		  M_range.lift ~f:(fun (s, e) -> (s - M_profile.int_of_profile_idx gd_state.ref_profile_pos,
 						  e - M_profile.int_of_profile_idx gd_state.ref_profile_pos)) gr_opp_gap
 	    in
 	    let diff_to_opp_gap = M_range.get_start gr_opp_diff - d_diff in
@@ -497,13 +498,13 @@ let generate_delta d (ref_profile, (ref_seq_s, ref_seq_e)) (query_profile, (quer
       (*
        * Now we know that the coordinates in the d_*_profile that match the corresponding
        * *_profile still overlap.
-       * 
+       *
        * Now we need to pull out the subsections of the *_profile and d_*_profile's so we can
        * get access to the gaps.
-       * 
+       *
        * `overlap` start and end are profile indecies into d_*_profile
        *)
-      let profiles = 
+      let profiles =
 	(* parens here because taureg mode doesn't know how to indent let open, need to fix *)
 	(let open Core.Option.Monad_infix in
 	    M_profile.subset_profile
@@ -536,7 +537,7 @@ let generate_delta d (ref_profile, (ref_seq_s, ref_seq_e)) (query_profile, (quer
 	   * By this point we have a subsets of *_profile and d_*_profile that match the overlapping
 	   * coordinates.  We only need these subsets for their gaps because we are going to walk the
 	   * gaps when creating the delta alignments.
-	   * 
+	   *
 	   * We are wrapping the query_profile up in a metaprofile because we want to index it
 	   * where we are always adding values to it, but in reality we might be subtracting
 	   * from the actual profile value.
@@ -547,7 +548,7 @@ let generate_delta d (ref_profile, (ref_seq_s, ref_seq_e)) (query_profile, (quer
 	    else
 	      M_metaprofile.metaprofile_of_profile query_profile
 	  in
-	  let query_profile_gaps = 
+	  let query_profile_gaps =
 	    if M_metaprofile.is_reverse query_metaprofile then
 	      let conv_int = M_profile.int_of_profile_idx $ M_metaprofile.profile_idx_of_profile_idx query_metaprofile $ M_profile.profile_idx_of_int in
 	      let conv_range = M_range.lift ~f:(fun (s, e) -> (conv_int e, conv_int s)) in
@@ -565,21 +566,21 @@ let generate_delta d (ref_profile, (ref_seq_s, ref_seq_e)) (query_profile, (quer
 	   * get the gaps in the range of the subset, because we need to translate back to the original profile
 	   * anyways.  So here we find where the subset starts and then translate that back into the profile
 	   *)
-	  let ref_start = 
-	    Mp.profile_idx_of_seq_idx 
-	      ref_profile 
+	  let ref_start =
+	    Mp.profile_idx_of_seq_idx
+	      ref_profile
 	      (Mp.seq_idx_of_int (M_range.get_start ref_profile_sub.p_range))
 	  in
-	  let query_start = 
+	  let query_start =
 	    if M_metaprofile.is_reverse query_metaprofile then
 	      M_metaprofile.profile_idx_of_profile_idx
 		query_metaprofile
-		(Mp.profile_idx_of_seq_idx 
-		   query_profile 
+		(Mp.profile_idx_of_seq_idx
+		   query_profile
 		   (Mp.seq_idx_of_int (M_range.get_end query_profile_sub.p_range)))
 	    else
-	      (Mp.profile_idx_of_seq_idx 
-		 query_profile 
+	      (Mp.profile_idx_of_seq_idx
+		 query_profile
 		 (Mp.seq_idx_of_int (M_range.get_start query_profile_sub.p_range)))
 	  in
 (* 	  Printf.eprintf "\n\n"; *)
@@ -646,15 +647,15 @@ let rec translate_combinations d combos =
 	  let ref_seq_e = M_profile.seq_idx_of_int (M_range.get_end ref_overlap) in
 	  let query_seq_s = M_profile.seq_idx_of_int (M_range.get_start query_overlap) in
 	  let query_seq_e = M_profile.seq_idx_of_int (M_range.get_end query_overlap) in
-	  (* 
+	  (*
 	   * Make sure the l profile (reference) is going the same direction as the ref in d.
 	   * If not, reverse the delta so the delta we produce will be going in the right
 	   * direction.
-	   * 
+	   *
 	   * Passing the reversed d to the enxt iteration is what we want because the l
 	   * profile will be the same for the entire r iteration
 	   *)
-	  let d = 
+	  let d =
 	    if M_range.get_direction l.p_range <> M_range.get_direction d.M_delta.ref_range then begin
 (* 	      Printf.eprintf "-------\nReversing\n"; *)
 (* 	      M_delta.print stderr d; *)
@@ -696,7 +697,7 @@ let rec translate_delta left_map right_map sin =
       let query_profiles = String_map.find query_seq right_map in
       let combos = combinations ref_profiles query_profiles in
       translate_combinations d combos
-    with 
+    with
       | Not_found -> begin
 	Printf.eprintf "Not_found (%s, %s)\n" ref_seq query_seq;
 	[< >]
@@ -732,7 +733,7 @@ let translate ~left_dir ~right_dir ~nucmer_list =
 
 let string_stream_of_delta d =
   let gap_conv = d |> M_delta.deltas_of_gaps |> List.map ~f:string_of_int |> Seq.of_list in
-  [< 'Printf.sprintf "%d %d %d %d 1 2 3" 
+  [< 'Printf.sprintf "%d %d %d %d 1 2 3"
          (M_range.get_start d.M_delta.ref_range)
 	 (M_range.get_end d.M_delta.ref_range)
 	 (M_range.get_start d.M_delta.query_range)
@@ -755,7 +756,7 @@ let string_stream_of_delta_stream (s1, s2, dt) sin =
 	  >]
 	| None ->
 	  [< >]
-  in    
+  in
   let first_delta sin =
     match Seq.next sin with
       | Some d ->
@@ -781,8 +782,8 @@ let parse_argv argv =
   let profiles_right = ref "" in
   let nucmer_list = ref "" in
   let out_delta = ref "" in
-  
-  let params = 
+
+  let params =
     Arg.align [ ("-profiles_left", Arg.Set_string profiles_left, "Path Path to directory containing left profiles")
 	      ; ("-profiles_right", Arg.Set_string profiles_right, "Path Path to directory containing right profiles")
 	      ; ("-nucmer_list", Arg.Set_string nucmer_list, "Path Path to file containing list of nucmer files")
@@ -807,11 +808,11 @@ let parse_argv argv =
 
 let main argv =
   let options = parse_argv argv in
-  Shell.mkdir_p (Fileutils.dirname options.out_delta);
-  let delta_stream = 
-    translate 
-      ~left_dir:options.profiles_left 
-      ~right_dir:options.profiles_right 
+  Shell.mkdir ~p:() (Fileutils.dirname options.out_delta);
+  let delta_stream =
+    translate
+      ~left_dir:options.profiles_left
+      ~right_dir:options.profiles_right
       ~nucmer_list:options.nucmer_list
   in
   let rec print_lines fout sin =
@@ -824,19 +825,19 @@ let main argv =
       | None ->
 	()
   in
-  let left_fasta = 
-    options.profiles_left 
-    |> Sys.readdir 
-    |> Array.to_list 
-    |> List.filter ~f:(String.is_suffix ~suffix:".fasta") 
+  let left_fasta =
+    options.profiles_left
+    |> Sys.readdir
+    |> Array.to_list
+    |> List.filter ~f:(String.is_suffix ~suffix:".fasta")
     |> List.map ~f:(fun f -> Fileutils.join [options.profiles_left; f])
     |> List.hd
   in
   let right_fasta =
     options.profiles_right
-    |> Sys.readdir 
-    |> Array.to_list 
-    |> List.filter ~f:(String.is_suffix ~suffix:".fasta") 
+    |> Sys.readdir
+    |> Array.to_list
+    |> List.filter ~f:(String.is_suffix ~suffix:".fasta")
     |> List.map ~f:(fun f -> Fileutils.join [options.profiles_right; f])
     |> List.hd
   in

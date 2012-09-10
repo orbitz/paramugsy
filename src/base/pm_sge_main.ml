@@ -1,12 +1,8 @@
-open Core_extended
 open Core_extended.Std
-open Lwt
 open Ort
 open Ort.Function
 
-open Mugsy_guide_tree
-
-module Tuple_map = Map.Make(struct type t = (string * string) let compare = compare end)
+module Shell = Core_extended.Shell
 
 type sge_mode = { out_dir : Fileutils.file_path
 		; sequences : Fileutils.file_path list
@@ -114,12 +110,6 @@ let parse_argv argv =
     ; out_maf = !out_maf
     }
 
-let tuple_map_add_all m1 m2 =
-  Tuple_map.fold (fun k v a -> Tuple_map.add k v a) m1 m2
-
-let list_of_tuple_map m =
-  Tuple_map.fold (fun k v a -> v::a) m []
-
 let rec print_lines fout sin =
   match Seq.next sin with
     | Some l -> begin
@@ -139,168 +129,9 @@ let rewrite_sequences sequences tmp_dir =
     close_out fout;
     fout_name
   in
-  Shell.mkdir_p tmp_dir;
+  Shell.mkdir ~p:() tmp_dir;
   List.map ~f:rewrite_sequence sequences
 
-(*
- * Takes a tree and converts it into a flat [(priority * (nucmer_seq * nucmer_seq)) sge_command list]
- *)
-let rec create_nucmers options depth = function
-  | H_taxonomic_unit (l, r) -> begin
-    let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
-    let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
-    let results = List.map ~f:(fun s -> (depth, s)) (searches left_seqs right_seqs) in
-    if List.length (List.append left_seqs right_seqs) <= options.seqs_per_mugsy then
-      [< Seq.of_list results >]
-    else
-      [< Seq.of_list results
-      ;  create_nucmers options (depth + 1) l
-      ;  create_nucmers options (depth + 1) r
-      >]
-  end
-  | Taxonomic_unit _ ->
-    [< >]
-
-
-let run_nucmer_chunks options nucmer_chunks =
-  let get_priority = function
-    | (priority, _)::_ ->
-      priority
-    | [] ->
-      raise (Failure "Could not get priority")
-  in
-  let rec qsub_nucmers' map_accum = function
-    | [] ->
-      Lwt.return map_accum
-    | chunks::rest_chunks ->
-      let priority = get_priority chunks in
-      let seqs = List.map ~f:snd chunks in
-      lwt jobs =
-	Pm_sge_nucmer.run_nucmer
-	  (sge_options_of_options priority options)
-	  seqs
-      in
-      let map_accum' =
-	List.fold_left
-	  ~f:(fun acc job -> Tuple_map.add (basename_of_search job.Pm_sge_nucmer.search_files) job acc)
-	  ~init:map_accum
-	  jobs
-      in
-      qsub_nucmers' map_accum' rest_chunks
-  in
-  qsub_nucmers' Tuple_map.empty nucmer_chunks
-
-let wait_on_nucmer_jobs nucmer_job_map searches =
-  let jobs =
-    List.map
-      ~f:(fun k -> Tuple_map.find (basename_of_search k) nucmer_job_map)
-      searches
-  in
-  Pm_sge_nucmer.wait_on_nucmer_jobs jobs
-
-
-let run_mugsy_and_wait options depth sequences nucmer_mafs =
-  lwt mugsy_job =
-    Pm_sge_mugsy.run_mugsy
-      ~distance:options.distance
-      ~minlength:options.minlength
-      (sge_options_of_options depth options)
-      sequences
-      nucmer_mafs
-  in
-  Pm_sge_mugsy.wait_on_mugsy_job mugsy_job
-
-let run_mugsy_with_profiles_and_wait options depth left_maf right_maf nucmer_deltas =
-  lwt mugsy_job =
-    Pm_sge_mugsy.run_mugsy_with_profiles
-      ~distance:options.distance
-      ~minlength:options.minlength
-      (sge_options_of_options depth options)
-      left_maf
-      right_maf
-      nucmer_deltas
-  in
-  Pm_sge_mugsy.wait_on_mugsy_job mugsy_job
-
-let run_fake_mugsy_and_wait options depth sequence =
-  lwt mugsy_job =
-    Pm_sge_mugsy.run_fake_mugsy
-      (sge_options_of_options depth options)
-      sequence
-  in
-  Pm_sge_mugsy.wait_on_mugsy_job mugsy_job
-
-let rec run_mugsy_jobs options depth nucmer_job_map = function
-  | H_taxonomic_unit (l, r) as subtree -> begin
-    let sequences = Mugsy_guide_tree.list_of_guide_tree subtree in
-    lwt () =
-      Lwt_io.printf
-	"--- Processing depth: %d Num seqs: %d\n"
-	depth
-	(List.length sequences)
-    in
-    if List.length sequences <= options.seqs_per_mugsy then
-      process_mugsy_leaf options depth nucmer_job_map (l, r)
-    else
-      process_mugsy_internal options depth nucmer_job_map (l, r)
-  end
-  | Taxonomic_unit sequence ->
-    run_fake_mugsy_and_wait
-      options
-      depth
-      sequence
-and process_mugsy_leaf options depth nucmer_job_map (l, r) =
-  let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
-  let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
-  let sequences =
-    List.append
-      left_seqs
-      right_seqs
-  in
-  lwt nucmer_jobs = wait_on_nucmer_jobs nucmer_job_map (searches left_seqs right_seqs) in
-  let nucmer_mafs =
-    List.map
-      ~f:(fun nucmer -> nucmer.Pm_sge_nucmer.output_maf)
-      nucmer_jobs
-  in
-  run_mugsy_and_wait
-    options
-    depth
-    sequences
-    nucmer_mafs
-and process_mugsy_internal options depth nucmer_job_map (l, r) =
-  let left_seqs = Mugsy_guide_tree.list_of_guide_tree l in
-  let right_seqs = Mugsy_guide_tree.list_of_guide_tree r in
-  lwt left_mugsy = run_mugsy_jobs options (depth + 1) nucmer_job_map l
-  and right_mugsy = run_mugsy_jobs options (depth + 1) nucmer_job_map r
-  and nucmer_jobs = wait_on_nucmer_jobs nucmer_job_map (searches left_seqs right_seqs)
-  in
-  let nucmer_deltas =
-    List.map
-      ~f:(fun nucmer -> nucmer.Pm_sge_nucmer.output_delta)
-      nucmer_jobs
-  in
-  run_mugsy_with_profiles_and_wait
-    options
-    depth
-    left_mugsy.Pm_sge_mugsy.mugsy_maf
-    right_mugsy.Pm_sge_mugsy.mugsy_maf
-    nucmer_deltas
-
-let run_tree options tree =
-  let nucmers =
-    List.sort
-      ~cmp:(fun (depth1, _) (depth2, _) -> compare depth2 depth1)
-      (Seq.to_list (create_nucmers options 0 tree))
-  in
-  let nucmers_chunked =
-    nucmers |>
-	Seq.of_list |>
-	    Seq.chunk options.nucmer_chunk_size |>
-		Seq.to_list
-  in
-  lwt nucmer_job_map = run_nucmer_chunks options nucmers_chunked in
-  run_mugsy_jobs options 0 nucmer_job_map tree
 
 let run argv =
   let options = parse_argv argv
@@ -312,8 +143,4 @@ let run argv =
   in
   let job = Pm_job.make_job options.seqs_per_mugsy sequences
   in
-  let final_maf = Lwt_main.run (run_tree options guide_tree >>=
-				  fun m -> Copy_file.copy_file m.Pm_sge_mugsy.mugsy_maf options.out_maf)
-  in
-  print_endline final_maf
-
+  Pm_job.pp stdout job

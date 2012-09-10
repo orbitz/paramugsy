@@ -18,9 +18,11 @@ native_cmi=$(sources_mli:%.mli=%.cmi)
 
 .PHONY: all native-code byte-code debug-code test clean
 
-all: native-code
+all: paramugsy
 
-native-code: $(native_cmx)
+native-code: paramugsy
+
+paramugsy: $(native_cmx)
 	ocamlfind ocamlopt $(OCAMLC_OPTS) -thread -linkpkg -o paramugsy $(native_cmx)
 
 

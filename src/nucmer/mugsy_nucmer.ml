@@ -15,7 +15,7 @@
  * nucmer(S2, S1), nucmer(S3, S2), nucmer(S3, S2)
  *
  * --fullsearch implies --searchall
- * 
+ *
  * The output is a number of file lists
  *)
 
@@ -56,7 +56,7 @@ let parse_argv () =
   let maf_out = ref "" in
   let delta_out = ref "" in
   let tmp_dir = ref "/tmp" in
-  
+
   let accum_sequences s = argv_file_list := (s::!argv_file_list) in
 
   let params =
@@ -98,7 +98,7 @@ let nucmer options ref_file query_file =
   let delta_file = Printf.sprintf "%s.delta" obname in
   let delta_filt_file = Printf.sprintf "%s.filt.delta" obname in
   Shell.sh ~verbose:options.debug ~echo:options.debug "nucmer %s %s -p %s %s" ref_file query_file obname options.nucmer_opts;
-  let delta_file' = 
+  let delta_file' =
     if options.filter then begin
       let chaining_opt = if options.colinear then "-m" else "-1" in
       Shell.sh ~verbose:options.debug ~echo:options.debug "delta-filter %s %s > %s" chaining_opt delta_file delta_filt_file;
@@ -114,22 +114,28 @@ let nucmer options ref_file query_file =
       delta_pp_file
     | None ->
       delta_file'
-    
+
 let generate_maf options =
-  (* Shell.sh ~verbose:options.debug ~echo:options.debug "delta2maf %s | fixMAFnames.pl > %s" options.delta_out options.maf_out *)
-  Shell.sh ~verbose:options.debug ~echo:options.debug "delta2maf %s > %s" options.delta_out options.maf_out
-  
+  Shell.sh
+    ~verbose:options.debug
+    ~echo:options.debug
+    "delta2maf %s > %s"
+    options.delta_out
+    options.maf_out
+
 
 let rec run_search options =
-  let delta_file = nucmer options options.ref_seq options.query_seq in
+  let delta_file = nucmer options options.ref_seq options.query_seq
+  in
   Shell.cp delta_file options.delta_out;
   generate_maf options
 
 
 let main () =
-  let options = parse_argv () in
-  Shell.mkdir ?p:(Some ()) options.out_dir;
-  Shell.mkdir ?p:(Some ()) options.tmp_dir;
+  let options = parse_argv ()
+  in
+  Shell.mkdir ~p:() options.out_dir;
+  Shell.mkdir ~p:() options.tmp_dir;
   run_search options;
   Shell.sh ~verbose:options.debug ~echo:options.debug "rm -rf %s" options.tmp_dir
 

@@ -29,7 +29,7 @@ EOF
 
 
 
-while getopts “s:o:d:m:n:t:” OPTION
+while getopts "s:o:d:m:n:t:" OPTION
 do
      case $OPTION in
          h)

@@ -67,8 +67,8 @@ let parse_argv argv =
   let basename = ref "" in
   let out_dir = ref "" in
   let in_maf = ref "" in
-  
-  let params = 
+
+  let params =
     Arg.align [ ("-basename", Arg.Set_string basename, "String Basename to give all output profiles.")
 	      ; ("-out_dir", Arg.Set_string out_dir, "Path Location to output files.")
 	      ; ("-in_maf", Arg.Set_string in_maf, "Path Path to the incoming MAF file.")
@@ -89,6 +89,6 @@ let parse_argv argv =
 
 let main argv =
   let options = parse_argv argv in
-  Shell.mkdir_p options.out_dir;
+  Shell.mkdir ~p:() options.out_dir;
   profile_set_of_maf ~out_dir:options.out_dir ~in_maf:options.in_maf ~basename:options.basename
 

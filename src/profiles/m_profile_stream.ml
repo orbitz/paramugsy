@@ -14,7 +14,7 @@ let direction_of_string = function
   | s -> raise (Failure ("Invalid direction: " ^ s))
 
 let split_maf s =
-  match List.filter ((<>) "") (String.split_on_chars ~on:[' '; '\t'] s) with
+  match List.filter ~f:((<>) "") (String.split_on_chars ~on:[' '; '\t'] s) with
     | ["s"; name; start; size; d; src_size; text] ->
       (name, int_of_string start, int_of_string size, direction_of_string d, int_of_string src_size, text)
     | _ ->
