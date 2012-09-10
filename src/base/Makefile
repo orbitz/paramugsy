@@ -67,5 +67,6 @@ pm_job.cmx: pm_job.cmi mugsy_guide_tree.cmx
 
 pm_sge_main.cmx: pm_job.cmx m_rewrite_fasta.cmx async_cmd.cmx pm_sge_server.cmx
 
+paramugsy.cmx: pm_sge_main.cmx
 
 -include ../Ocamlrules.mk.in

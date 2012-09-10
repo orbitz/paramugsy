@@ -1,6 +1,10 @@
-SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate ocaml-bio ocaml-seq
+SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate
 
-subdirs_clean = $(SUBDIRS:%=%_clean)
+EXTERNAL_APPS = ocaml-bio ocaml-seq
+
+all_apps = $(SUBDIRS) $(EXTERNAL_APPS)
+
+subdirs_clean = $(all_apps:%=%_clean)
 
 OCAML_BIO_INSTALL_FILES = bio_string_ext.mli bio_string_ext.cmi \
 	bio_fasta.mli bio_fasta.cmi \
@@ -17,7 +21,7 @@ SEQ_INSTALL_FILES = ort_seq.mli ort_seq.cmi \
 	ort.mli ort.cmi \
 	seq.cma seq.cmxa seq.a
 
-.PHONY: all clean $(SUBDIRS) $(subdirs_clean) \
+.PHONY: all clean $(SUBDIRS) $(EXTERNAL_APPS) $(subdirs_clean) \
 	seq ocaml_bio seq_lcean ocaml_bio_clean
 
 all: $(SUBDIRS)
@@ -35,28 +39,31 @@ profiles: ocaml_bio seq
 m_translate: profiles_lib
 
 $(SUBDIRS):
-	$(MAKE) -C $@
+	$(MAKE) -C $@ native-code
 
 $(subdirs_clean):
 	$(MAKE) -C $(patsubst %_clean,%,$@) clean
 
+ocaml-seq:
+	$(MAKE) -C ocaml-seq
 
 ocaml-bio: seq
+	$(MAKE) -C ocaml-bio
 
 # Depend on the META begin there so we don't
 # try to install every time
-ocaml_bio: ocaml-bio ocaml_bio/META
+ocaml_bio: ocaml_bio/META
 
-ocaml_bio/META:
+ocaml_bio/META: ocaml-bio
 	cd ocaml-bio/lib && \
 	ocamlfind install -destdir ../../ ocaml_bio META $(OCAML_BIO_INSTALL_FILES)
 
 ocaml_bio_clean:
 	-rm -rf ocaml_bio
 
-seq: ocaml-seq seq/META
+seq: seq/META
 
-seq/META:
+seq/META: ocaml-seq
 	cd ocaml-seq/lib && \
 	ocamlfind install -destdir ../../ seq META $(SEQ_INSTALL_FILES)
 
