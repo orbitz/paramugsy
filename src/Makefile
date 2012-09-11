@@ -28,13 +28,13 @@ all: $(SUBDIRS)
 
 clean: $(subdirs_clean) ocaml_bio_clean seq_clean
 
-base: ocaml_bio seq
+base: ocaml_bio/META seq/META
 
-mugsy: ocaml_bio seq
+mugsy: ocaml_bio/META seq/META
 
-nucmer: seq
+nucmer: seq/META
 
-profiles: ocaml_bio seq
+profiles: ocaml_bio/META seq/META
 
 m_translate: profiles_lib
 
@@ -47,24 +47,20 @@ $(subdirs_clean):
 ocaml-seq:
 	$(MAKE) -C ocaml-seq
 
-ocaml-bio: seq
+ocaml-bio: seq/META
 	$(MAKE) -C ocaml-bio
 
 # Depend on the META begin there so we don't
 # try to install every time
-ocaml_bio: ocaml_bio/META
-
 ocaml_bio/META: ocaml-bio
-	cd ocaml-bio/lib && \
+	-cd ocaml-bio/lib && \
 	ocamlfind install -destdir ../../ ocaml_bio META $(OCAML_BIO_INSTALL_FILES)
 
 ocaml_bio_clean:
 	-rm -rf ocaml_bio
 
-seq: seq/META
-
 seq/META: ocaml-seq
-	cd ocaml-seq/lib && \
+	-cd ocaml-seq/lib && \
 	ocamlfind install -destdir ../../ seq META $(SEQ_INSTALL_FILES)
 
 seq_clean:
