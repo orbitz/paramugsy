@@ -8,7 +8,7 @@ module type QUEUE_SERVER = sig
   type queue       = string
 
   type run_success = unit
-  type run_error   = Qsub_error
+  type run_error   = Queue_error
   type job_running = Pending | Running
   type job_done    = Completed | Failed
 

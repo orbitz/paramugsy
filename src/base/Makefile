@@ -1,7 +1,7 @@
 CAMLP4=-pp "camlp4o pa_extend.cmo"
 OCAMLC_OPTS=-package str,core_extended,async,seq,ocaml_bio
 
-tests=async_cmd_test pm_file_test
+tests=async_cmd_test pm_file_test queue_server_test
 
 sources=global_state.ml m_rewrite_fasta.ml async_cmd.ml copy_file.ml \
 	pm_file.ml mugsy_guide_tree.ml pm_job.ml \
@@ -25,10 +25,10 @@ native-code: paramugsy
 paramugsy: $(native_cmx)
 	ocamlfind ocamlopt $(OCAMLC_OPTS) -thread -linkpkg -o paramugsy $(native_cmx)
 
-
 test: $(tests)
 	./async_cmd_test
 	./pm_file_test
+	./queue_server_test
 
 async_cmd_test: async_cmd_test.cmx
 	ocamlfind ocamlopt -package core_extended,async -thread -linkpkg \
@@ -42,12 +42,19 @@ pm_file_test: pm_file_test.cmx pm_file.cmx pm_file.cmi
 
 pm_file_test.cmx: pm_file_test.ml
 
+queue_server_test: queue_server_test.cmx queue_server.cmx queue_server.cmi \
+	pm_file.cmx pm_file.cmi
+	ocamlfind ocamlopt -package str,core_extended,async,seq -thread -linkpkg \
+	-o queue_server_test pm_file.cmx queue_server.cmx queue_server_test.cmx
+
+queue_server_test.cmx: queue_server.cmx queue_server.cmi
+
 clean:
 	-rm paramugsy $(tests) *.cmi *.cmx *.cmo *.o
 
 
 # Dependencies
-queue_server.cmx: queue_server.cmi
+queue_server.cmx: queue_server.cmi pm_file.cmx pm_file.cmi
 
 pm_job_server.cmx: pm_job_server.cmi pm_sge_server.cmx global_state.cmx
 
