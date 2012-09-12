@@ -1,24 +1,24 @@
 OCAMLPATH:=$(PWD)/src:$(OCAMLPATH)
 
-.PHONY: all clean \
+.PHONY: all test clean \
 	setup core-install get-deps get-ocaml-bio get-ocaml-seq \
 	clean-deps
 
 all:
 	$(MAKE) -C src
 
+test:
+	$(MAKE) -C src test
+
 setup: get-deps
 
-get-deps: core-install get-ocaml-bio get-ocaml-seq
-
-core-install:
-	ocaml setup/odb.ml --package $(PWD)/setup/core.odb.pkg
+get-deps: get-ocaml-bio get-ocaml-seq
 
 get-ocaml-bio:
-	cd src && git clone git@github.com:orbitz/ocaml-bio.git
+	cd src && git clone https://github.com/orbitz/ocaml-bio.git
 
 get-ocaml-seq:
-	cd src && git clone git@github.com:orbitz/ocaml-seq.git
+	cd src && git clone https://github.com/orbitz/ocaml-seq.git
 
 clean-deps:
 	rm -rf src/ocaml-bio
