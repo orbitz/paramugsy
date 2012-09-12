@@ -120,7 +120,8 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
       }
     in
     let cmds   = instantiate_template job in
-    let dir    = Fileutils.join [job.script_dir; "qsub"] in
+    let dir    = Fileutils.join [job.script_dir; "q_job"] in
+    Shell.mkdir ~p:() dir;
     let script = Fileutils.join [dir; Printf.sprintf "q%05d.sh" !submit_count] in
     submit_count := !submit_count + 1;
     Writer.with_file

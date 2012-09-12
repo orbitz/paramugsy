@@ -11,3 +11,8 @@ RESULT  = mugsy_mugsy
 PACKS = core_extended str seq ocaml_bio
 
 -include $(OCAMLMAKEFILE)
+
+
+.PHONY: test
+
+test:

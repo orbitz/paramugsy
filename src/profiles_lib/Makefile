@@ -7,15 +7,13 @@ objects = $(sources:%.cc=%.o)
 
 profiles_lib = libprofiles.a
 
-.PHONY: all native-code byte-code debug-code clean
+.PHONY: all test native-code clean
 
 all: $(profiles_lib)
 
 native-code: all
 
-byte-code: all
-
-debug-code: all
+test:
 
 $(profiles_lib): $(objects)
 	ar rvs $(profiles_lib) $(objects)

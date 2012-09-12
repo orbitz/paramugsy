@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
   std::vector<std::string> nucmer_list;
   std::ifstream in_stream(argv[NUCMER_FILE_LIST]);
   std::string line;
-  
+
   while(std::getline(in_stream, line)) {
     nucmer_list.push_back(line);
   }
@@ -37,12 +37,11 @@ int main(int argc, char **argv) {
   out_stream << (std::string(argv[LEFT_PROFILE_DIR]) + "/sequences.fasta") << " " <<
     (std::string(argv[RIGHT_PROFILE_DIR]) + "/sequences.fasta") << std::endl;
   out_stream << "NUCMER\n";
-  
+
   Para_mugsy::translate(std::string(argv[LEFT_PROFILE_DIR]),
                         std::string(argv[RIGHT_PROFILE_DIR]),
                         nucmer_list,
                         out_stream);
-  
-  
+
   return 0;
 }

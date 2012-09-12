@@ -42,13 +42,13 @@ module Test_queue_server = Queue_server.Make(Test_server)
 
 let never_returns = Core.Std.never_returns
 
-let test_server_test () =
-  let tqs = Test_queue_server.start ()
-  in
+let test_server_test temp_dir =
+  let tqs           = Test_queue_server.start () in
+  let template_file = Filename.temp_file ~in_dir:temp_dir "foo" "bar" in
   let job = { Test_queue_server.name          = "test"
 	    ; Test_queue_server.verbose       = false
-	    ; Test_queue_server.template_file = ""
-	    ; Test_queue_server.script_dir    = ""
+	    ; Test_queue_server.template_file = template_file
+	    ; Test_queue_server.script_dir    = temp_dir
 	    ; Test_queue_server.exec_queue    = ""
 	    ; Test_queue_server.data_queue    = ""
 	    ; Test_queue_server.pre           = []
@@ -63,7 +63,9 @@ let test_server_test () =
     | Test_server.Failed    -> Deferred.return 1
 
 let test () =
-  test_server_test () >>> fun ret ->
+  let temp_dir = Filename.temp_dir ~in_dir:"/tmp" "foo" "bar" in
+  test_server_test temp_dir >>> fun ret ->
+  Shell.rm ~r:() ~f:() temp_dir;
   never_returns (Shutdown.shutdown_and_raise ret)
 
 

@@ -6,17 +6,15 @@ LDFLAGS  = -L../profiles_lib -lprofiles
 sources = m_translate.cc m_translate_main.cc
 objects = $(sources:%.cc=%.o)
 
-.PHONY: all native-code byte-code debug-code clean
+.PHONY: all test native-code clean
 
 vpath %.hh ../profiles_lib
 
 all: m_translate
 
+test:
+
 native-code: all
-
-byte-code: all
-
-debug-code: all
 
 m_translate: $(objects)
 

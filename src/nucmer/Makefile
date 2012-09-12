@@ -11,3 +11,7 @@ RESULT  = mugsy_nucmer
 PACKS = core_extended seq
 
 -include $(OCAMLMAKEFILE)
+
+.PHONY: test
+
+test:

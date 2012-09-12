@@ -21,8 +21,6 @@ using namespace Para_mugsy;
 namespace {
   class Already_unnext_gap : public std::exception {};
 
-
-  
   class _gap_iterator {
   public:
     _gap_iterator(std::vector<M_range<M_profile_idx> >::const_iterator ref_start,
@@ -48,7 +46,7 @@ namespace {
         }
         else {
           return M_option<std::pair<strand_t, M_range<M_profile_idx> > >(std::make_pair(S_QUERY, query_gap));
-        }        
+        }
       }
       else if(ref_tmp_gap_ptr || ref_curr != ref_end) {
         M_range<M_profile_idx> const &tmp = ref_tmp_gap_ptr ? *ref_tmp_gap_ptr : *ref_curr;
@@ -71,7 +69,7 @@ namespace {
       else if(S_QUERY == s && !query_tmp_gap_ptr) {
         query_tmp_gap = gap;
         query_tmp_gap_ptr = &query_tmp_gap;
-      }      
+      }
       else {
         throw Already_unnext_gap();
       }
@@ -98,7 +96,7 @@ namespace {
     bool at_end() const {
       return !ref_tmp_gap_ptr && ref_curr == ref_end && !query_tmp_gap_ptr && query_curr == query_end;
     }
-    
+
     void advance_strand(strand_t s) {
       if(S_REF == s) {
         advance_ref_iter();
@@ -107,7 +105,7 @@ namespace {
         advance_query_iter();
       }
     }
-    
+
   private:
     void advance_ref_iter() {
       if(ref_tmp_gap_ptr) {
@@ -117,7 +115,7 @@ namespace {
         ++ref_curr;
       }
     }
-    
+
     void advance_query_iter() {
       if(query_tmp_gap_ptr) {
         query_tmp_gap_ptr = 0;
@@ -126,7 +124,7 @@ namespace {
         ++query_curr;
       }
     }
-    
+
     std::vector<M_range<M_profile_idx> >::const_iterator ref_curr;
     std::vector<M_range<M_profile_idx> >::const_iterator ref_end;
     std::vector<M_range<M_profile_idx> >::const_iterator query_curr;
@@ -136,8 +134,8 @@ namespace {
     M_range<M_profile_idx> *ref_tmp_gap_ptr;
 
     M_range<M_profile_idx> query_tmp_gap;
-    M_range<M_profile_idx> *query_tmp_gap_ptr;    
-    
+    M_range<M_profile_idx> *query_tmp_gap_ptr;
+
   };
 
   struct _gd_state {
@@ -168,7 +166,7 @@ namespace {
     M_profile_idx d_profile_pos;
     M_profile_idx d_profile_end;
   };
-  
+
   template <typename T>
   bool _range_sort_comparator(M_range<T> const &left, M_range<T> const &right) {
     return left.abs().get_start() < right.abs().get_start();
@@ -231,7 +229,7 @@ namespace {
       gd.d_profile_pos += d_diff.get_end() + 1;
     }
   }
-  
+
   void _update_pos_by_p_gap_strand(strand_t s, M_range<long> const &gr_diff, _gd_state &gd) {
     if(S_REF == s) {
       gd.ref_profile_pos += gr_diff.get_end() + 1;
@@ -277,7 +275,7 @@ namespace {
       return profile_gaps.peek(S_REF);
     }
   }
-  
+
   void _generate_delta_alignment(_gd_state &gd, M_delta_builder &db, M_delta_stream_writer &dsw) {
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > gr_gap_o = gd.profile_gaps.curr(gd.ref_profile_pos, gd.query_metaprofile_pos);
     M_option<std::pair<strand_t, M_range<M_profile_idx> > > d_gap_o = gd.d_profile_gaps.curr(gd.d_profile_pos, gd.d_profile_pos);
@@ -300,7 +298,7 @@ namespace {
                            d_gap.second.get_end() - gd.d_profile_pos);
 
       /*
-       * There are 2 situations here.  
+       * There are 2 situations here.
        * 1 - One is that our gap starts before or at the same offset as
        *     the d_gap.
        * 2 - The d_gap comes before the gap, in that case we need to determine if the d_gap
@@ -334,17 +332,17 @@ namespace {
 	 * We need to know this because when we add the d gap, we increment the profile 
 	 * position on the strand opposite of the current gr gap by the total length of 
 	 * the d gap.  Consider the situation below:
-	 * 
-	 * 
+	 *
+	 *
 	 *     r |------XX-----------|
 	 *     q |----------XX-------|
 	 *    dr |----XXXXXXXXXX-----|
 	 *    dq |-------------------|
-	 * 
+	 *
 	 * In this case `strand` is r and `d_strand` is r.  If we blindly add the d gap, the following
 	 * positions would look like:
-	 * 
-	 * 
+	 *
+	 *
 	 *     r |------XX-----------|
 	 *            ^
 	 *     q |----------XX-------|
@@ -353,11 +351,11 @@ namespace {
 	 *                      ^
 	 *    dq |-------------------|
 	 *                      ^
-	 * 
+	 *
 	 * We have steped over the gap on the q strand.  Instead what we will do is check to see if the current
 	 * d gap overlaps the next gap on the opposing strand and, if so, break our d gap into 2 gaps.  At the
 	 * end of this function we should look like:
-	 * 
+	 *
 	 *     r |------XX-----------|
 	 *            ^
 	 *     q |----------XX-------|
@@ -409,20 +407,20 @@ namespace {
        * We just have gaps left in the profiles we are producing alignments for.  In this case we have to
        * produce an alignment under some conditions.  Conditions where we do not want to produce
        * an alignment include:
-       * 
+       *
        * 1 - We are at the start of a new alignment and the first thing we hit is a gap.  In this case
        *     we just want to advance on to creating the next alignment.
        * 2 - We have a situation where a d_gap spans multiple gaps.  For example:
-       * 
+       *
        *     r |-----XX----XX------|
        *     q |-------------------|
        *    dr |----XXXXXXXXXX-----|
        *    dq |-------------------|
-       * 
+       *
        *     In this case, the portion in r between the two gaps is not actually a valid alignment because 
        *     the other strand is nothing but gaps.  That means we want to throw this alignment away
        *     as well and continue on to the next one.
-       * 
+       *
        * Both of these situations are identifiable through the same method: the distance to the gap will
        * be 0 and one of the strands in the delta will have not moved at all.
        */
@@ -472,7 +470,7 @@ namespace {
       }
     }
   }
-  
+
   void _generate_delta(M_delta_entry const &de,
                        M_profile const &ref_profile,
                        M_range<M_seq_idx> const &ref_seq,
@@ -493,14 +491,14 @@ namespace {
      * to profile.  The ref and query profiles from delta entry are the same length so a point that is on
      * one will correspond to the same location on the other (when using profile indecies).  That means
      * with the profile indecies that `ref_seq` and `query_seq` have been mapped back to we can see
-     * if they overlap.  If they do, we have a region to convert. 
+     * if they overlap.  If they do, we have a region to convert.
      */
     M_profile d_ref_profile("",
                             "",
                             "",
                             de.ref_range,
                             de.ref_gaps);
-    
+
     M_profile d_query_profile("",
                               "",
                               "",
@@ -525,7 +523,7 @@ namespace {
        * There is one condition that will keep us from translating anything here: if the new area is all gaps
        * in the left or right profile.
        */
-      
+
       M_option<M_profile> d_ref_profile_sub_o = subset_profile(d_ref_profile,
                                                                d_overlap.value().get_start(),
                                                                d_overlap.value().get_end());
@@ -603,14 +601,14 @@ namespace {
                      query_start,
                      d_profile_pos,
                      d_profile_end);
-        
+
         M_delta_builder db(std::make_pair("", ""),
                            std::make_pair(ref_profile.p_major_name, ref_profile.p_length),
                            std::make_pair(query_profile.p_major_name, query_profile.p_length),
                            ref_start,
                            query_start,
                            query_metaprofile);
-        
+
         while(!gd.profile_gaps.at_end() || !gd.d_profile_gaps.at_end()) {
           _generate_delta_alignment(gd, db, dsw);
         }
@@ -621,9 +619,9 @@ namespace {
       }
     }
   }
-    
 
-  
+
+
   void _translate_delta_with_profiles(M_profile const &left_profile,
                                       M_profile const &right_profile,
                                       M_delta_entry const &de,
@@ -637,18 +635,18 @@ namespace {
      */
     M_option<M_range<M_seq_idx> > ref_overlap_o = overlap(de.ref_range, left_profile.p_range);
     M_option<M_range<M_seq_idx> > query_overlap_o = overlap(de.query_range, right_profile.p_range);
-    
+
     if(ref_overlap_o && query_overlap_o) {
       M_range<M_seq_idx> const &ref_overlap = ref_overlap_o.value();
       M_range<M_seq_idx> const &query_overlap = query_overlap_o.value();
 
       M_delta_entry n_de = _reverse_if_needed(de, left_profile);
-      
+
       _generate_delta(n_de, left_profile, ref_overlap, right_profile, query_overlap, dsw);
     }
   }
-  
-  
+
+
   void _translate_delta(std::map<std::string, std::vector<M_profile> > const &left_profile_map,
                         std::map<std::string, std::vector<M_profile> > const &right_profile_map,
                         M_delta_stream &ds,
@@ -664,10 +662,10 @@ namespace {
                           "",
                           M_range<M_seq_idx>(0, 0),
                           std::vector<M_range<M_profile_idx> >());
-    
+
     while(M_option<M_delta_entry> d = ds.next()) {
       std::map<std::string, std::vector<M_profile> >::const_iterator left_profiles_i = left_profile_map.find(d.value().header_names.first);
-      std::map<std::string, std::vector<M_profile> >::const_iterator right_profiles_i = right_profile_map.find(d.value().header_names.second);      
+      std::map<std::string, std::vector<M_profile> >::const_iterator right_profiles_i = right_profile_map.find(d.value().header_names.second);
 
       if(left_profiles_i != left_profile_map.end() && right_profiles_i != right_profile_map.end()) {
         std::vector<M_profile> const &left_profiles = left_profiles_i->second;
@@ -696,7 +694,7 @@ namespace {
                                                                               tmp_profile,
                                                                               _profile_search_comparator);
 
-        
+
         for(std::vector<M_profile>::const_iterator left_i = left_start;
             left_i != left_profiles.end() && overlap(left_i->p_range, delta_entry.ref_range);
             ++left_i) {
@@ -712,7 +710,6 @@ namespace {
 }
 
 namespace Para_mugsy {
-  
   void translate(std::string const &left_dir,
                  std::string const &right_dir,
                  std::vector<std::string> const &nucmer_list,
@@ -721,7 +718,7 @@ namespace Para_mugsy {
     std::map<std::string, std::vector<M_profile> > right_profile_map = _profile_map_of_dir(right_dir);
 
     M_delta_stream_writer dsw(out_stream);
-    
+
     for(std::vector<std::string>::const_iterator i = nucmer_list.begin();
         i != nucmer_list.end();
         ++i) {
@@ -730,6 +727,4 @@ namespace Para_mugsy {
       _translate_delta(left_profile_map, right_profile_map, ds, dsw);
     }
   }
-
-  
 }
