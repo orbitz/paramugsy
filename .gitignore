@@ -1,0 +1,11 @@
+*.o
+*.a
+*.cmo
+*.cmi
+*.cmx
+*.cmxa
+src/seq
+src/ocaml-seq
+src/ocaml_bio
+src/ocaml-bio
+*~
