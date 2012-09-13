@@ -3,15 +3,7 @@ open Async.Std
 open Ort
 
 module type QUEUE_SERVER = sig
-  type name        = string
-  type queue       = string
-
-  type run_success = unit
-  type run_error   = Queue_error
-  type job_running = Pending | Running
-  type job_done    = Completed | Failed
-
-  type job_status  = R of job_running | D of job_done
+  type name = string
 
   type t
 
@@ -20,20 +12,18 @@ module type QUEUE_SERVER = sig
 
   val run :
     n:name ->
-    q:queue ->
+    q:Queue_job.Queue.t ->
     Fileutils.file_path ->
     t ->
-    (run_success, run_error) Result.t Deferred.t
+    bool Deferred.t
 
-  val status : name -> t -> job_status option Deferred.t
-  val wait   : name -> t -> job_done option Deferred.t
+  val status : name -> t -> Queue_job.Job_status.t option Deferred.t
+  val wait   : name -> t -> Queue_job.Job_status.job_done option Deferred.t
   val ack    : name -> t -> unit
 
 end
 
 module Make = functor (Qs : QUEUE_SERVER) -> struct
-  type job_done = Qs.job_done
-
   type copy_file = { file_list : Fileutils.file_path
 		   ; src_path  : Fileutils.file_path
 		   ; dst_path  : Fileutils.file_path
@@ -45,8 +35,8 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
 	    ; verbose       : bool
 	    ; template_file : Fileutils.file_path
             ; script_dir    : Fileutils.file_path
-            ; exec_queue    : Qs.queue
-            ; data_queue    : Qs.queue
+            ; exec_queue    : Queue_job.Queue.t
+            ; data_queue    : Queue_job.Queue.t
 	    ; pre           : command list
 	    ; post          : command list
 	    ; body          : command list
@@ -56,7 +46,7 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
 
 
   module Template = struct
-    type template_vars = { name : Pm_sge_server.name
+    type template_vars = { name : Qs.name
 			 ; pre  : string
 			 ; post : string
 			 ; body : string
@@ -130,16 +120,16 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
     let _ = Unix.chmod ~perm:0o555 script
     in
     Qs.run job.name job.exec_queue script qs >>= function
-      | Result.Ok () -> begin
+      | true -> begin
 	Qs.wait job.name qs >>= function
 	  | Some status -> begin
 	    Qs.ack job.name qs;
 	    Deferred.return status
 	  end
 	  | None ->
-	    Deferred.return Qs.Failed
+	    Deferred.return Queue_job.Job_status.Failed
       end
-      | Result.Error _ ->
-	Deferred.return Qs.Failed
+      | false ->
+	Deferred.return Queue_job.Job_status.Failed
 
 end
