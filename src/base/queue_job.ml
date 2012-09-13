@@ -1,7 +1,13 @@
 open Core_extended.Std
 
 module Queue = struct
-  type t = string
+  type t      = string
+  let compare = String.compare
+end
+
+module Name = struct
+  type t      = string
+  let compare = String.compare
 end
 
 module Job_status = struct

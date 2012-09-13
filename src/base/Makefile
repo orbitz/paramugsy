@@ -44,9 +44,10 @@ pm_file_test: pm_file_test.cmx pm_file.cmx pm_file.cmi
 pm_file_test.cmx: pm_file_test.ml
 
 queue_server_test: queue_server_test.cmx queue_server.cmx queue_server.cmi \
-	pm_file.cmx pm_file.cmi
+	queue_job.cmx pm_file.cmx pm_file.cmi
 	ocamlfind ocamlopt -package str,core_extended,async,seq -thread -linkpkg \
-	-o queue_server_test pm_file.cmx queue_server.cmx queue_server_test.cmx
+	-o queue_server_test \
+	pm_file.cmx queue_job.cmx queue_server.cmx queue_server_test.cmx
 
 queue_server_test.cmx: queue_server.cmx queue_server.cmi
 
@@ -55,7 +56,9 @@ clean:
 
 
 # Dependencies
-queue_server.cmx: queue_server.cmi pm_file.cmx pm_file.cmi
+queue_server.cmx: queue_server.cmi queue_job.cmx queue_job.cmi pm_file.cmx pm_file.cmi
+
+queue_server.cmi: queue_job.cmi
 
 pm_job_server.cmx: pm_job_server.cmi pm_sge_server.cmx global_state.cmx
 

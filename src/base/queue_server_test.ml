@@ -1,36 +1,29 @@
 open Core_extended.Std
 open Async.Std
 
-module Test_server = struct
-  type name        = string
-  type queue       = string
+module Job_status = Queue_job.Job_status
 
-  type run_success = unit
-  type run_error   = Queue_error
-  type job_running = Pending | Running
-  type job_done    = Completed | Failed
-  type job_status  = R of job_running | D of job_done
-
-  module Job_set = Set.Make(String)
+module Test_server : Queue_server.QUEUE_SERVER = struct
+  module Job_set = Set.Make(Queue_job.Name)
 
   type t = Job_set.t ref
 
   let start () = ref Job_set.empty
   let stop ts  = Deferred.return ()
 
-  let run ~n ~q script ts =
+  let run ~n ~q payload ts =
     ts := Job_set.add n !ts;
-    Deferred.return (Result.Ok ())
+    Deferred.return true
 
   let status n ts =
     if Job_set.mem n !ts then
-      Deferred.return (Some (D Completed))
+      Deferred.return (Some (Job_status.D Job_status.Completed))
     else
       Deferred.return None
 
   let wait n ts =
     if Job_set.mem n !ts then
-      Deferred.return (Some Completed)
+      Deferred.return (Some Job_status.Completed)
     else
       Deferred.return None
 
@@ -45,22 +38,22 @@ let never_returns = Core.Std.never_returns
 let test_server_test temp_dir =
   let tqs           = Test_queue_server.start () in
   let template_file = Filename.temp_file ~in_dir:temp_dir "foo" "bar" in
-  let job = { Test_queue_server.name          = "test"
-	    ; Test_queue_server.verbose       = false
-	    ; Test_queue_server.template_file = template_file
-	    ; Test_queue_server.script_dir    = temp_dir
-	    ; Test_queue_server.exec_queue    = ""
-	    ; Test_queue_server.data_queue    = ""
-	    ; Test_queue_server.pre           = []
-	    ; Test_queue_server.post          = []
-	    ; Test_queue_server.body          = []
-	    ; Test_queue_server.in_files      = []
-	    ; Test_queue_server.out_files     = []
+  let job = { Queue_server.name          = "test"
+	    ;              verbose       = false
+	    ;              template_file = template_file
+	    ;              script_dir    = temp_dir
+	    ;              exec_queue    = ""
+	    ;              data_queue    = ""
+	    ;              pre           = []
+	    ;              post          = []
+	    ;              body          = []
+	    ;              in_files      = []
+	    ;              out_files     = []
 	    }
   in
   Test_queue_server.submit job tqs >>= function
-    | Test_server.Completed -> Deferred.return 0
-    | Test_server.Failed    -> Deferred.return 1
+    | Job_status.Completed -> Deferred.return 0
+    | Job_status.Failed    -> Deferred.return 1
 
 let test () =
   let temp_dir = Filename.temp_dir ~in_dir:"/tmp" "foo" "bar" in

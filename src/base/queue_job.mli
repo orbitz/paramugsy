@@ -2,6 +2,12 @@ open Core_extended.Std
 
 module Queue : sig
   type t = string
+  val compare : t -> t -> int
+end
+
+module Name : sig
+  type t = string
+  val compare : t -> t -> int
 end
 
 module Job_status : sig
