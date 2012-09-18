@@ -1,11 +1,24 @@
+*~
 *.o
 *.a
 *.cmo
 *.cmi
 *.cmx
 *.cmxa
+
+# Deps
 src/seq
 src/ocaml-seq
 src/ocaml_bio
 src/ocaml-bio
-*~
+
+# Binaries
+src/base/paramugsy
+src/m_translate/m_translate
+src/mugsy/mugsy_mugsy
+src/nucmer/mugsy_nucmer
+src/profiles/mugsy_profiles
+
+# Intermediates
+._d/
+._ncdi/

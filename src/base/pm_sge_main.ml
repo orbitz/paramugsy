@@ -4,21 +4,6 @@ open Ort.Function
 
 module Shell = Core_extended.Shell
 
-type sge_mode = { out_dir : Fileutils.file_path
-		; sequences : Fileutils.file_path list
-		; exec_q : string
-		; stage_data : bool
-		; staging_q : string
-		; tmp_dir : Fileutils.file_path
-		; sequence_dir : Fileutils.file_path
-		; distance : int
-		; minlength : int
-		; template_file : Fileutils.file_path
-		; seqs_per_mugsy : int
-		; nucmer_chunk_size : int
-		; out_maf : Fileutils.file_path
-		}
-
 let usage = ""
 
 let parse_argv argv =
@@ -26,7 +11,7 @@ let parse_argv argv =
   let out_dir = ref "" in
   let exec_q = ref "exec.q" in
   let stage_data = ref false in
-  let staging_q = ref "staging.q" in
+  let staging_q = ref "" in
   let tmp_dir = ref "/tmp" in
   let distance = ref 1000 in
   let minlength = ref 30 in
@@ -48,13 +33,9 @@ let parse_argv argv =
 		, Arg.Set_string exec_q
 		, "String Queue name to run exec jobs on, defaults to exec.q.")
 
-	      ; ( "-stage_data"
-		, Arg.Set stage_data
-		, " Handle staging data out to nodes, off by default.")
-
 	      ; ( "-staging_q"
 		, Arg.Set_string staging_q
-		, "String Queue to run data staging jobs in, defaults to staging.q (if -stage_data).")
+		, "String Queue to run data staging jobs in if you are into that.")
 
 	      ; ( "-tmp_dir"
 		, Arg.Set_string tmp_dir
@@ -95,19 +76,21 @@ let parse_argv argv =
   else if !seqs_per_mugsy < 2 then
     raise (Failure "-seqs_per_mugsy must be >= 2")
   else
-    { out_dir = !out_dir
-    ; sequences = Lazy_io.read_file_lines ~close:true (open_in !seq_list) |> Seq.to_list
-    ; exec_q = !exec_q
-    ; stage_data = !stage_data
-    ; staging_q = !staging_q
-    ; tmp_dir = !tmp_dir
-    ; sequence_dir = Fileutils.join [!tmp_dir; "sequences"]
-    ; distance = !distance
-    ; minlength = !minlength
-    ; template_file = !template_file
-    ; seqs_per_mugsy = !seqs_per_mugsy
+    let sequences =
+      Lazy_io.read_file_lines
+	~close:true (open_in !seq_list) |> Seq.to_list
+    in
+    { out_dir           = !out_dir
+    ; sequences         = sequences
+    ; exec_q            = !exec_q
+    ; staging_q         = if !staging_q = "" then None else Some !staging_q
+    ; tmp_dir           = !tmp_dir
+    ; distance          = !distance
+    ; minlength         = !minlength
+    ; template_file     = !template_file
+    ; seqs_per_mugsy    = !seqs_per_mugsy
     ; nucmer_chunk_size = !nucmer_chunk_size
-    ; out_maf = !out_maf
+    ; out_maf           = !out_maf
     }
 
 let rec print_lines fout sin =
