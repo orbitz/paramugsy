@@ -5,13 +5,13 @@ tests=async_cmd_test pm_file_test queue_server_test
 
 sources=global_state.ml m_rewrite_fasta.ml async_cmd.ml copy_file.ml \
 	pm_file.ml mugsy_guide_tree.ml pm_job.ml \
-	queue_job.ml sge_interface.ml queue_driver.ml \
-	queue_server.ml pm_sge_main.ml paramugsy.ml
+	queue_job.ml sge_interface.ml local_interface.ml \
+	queue_driver.ml queue_server.ml pm_sge_main.ml paramugsy.ml
 
 sources_mli=global_state.mli m_rewrite_fasta.mli async_cmd.mli \
 	pm_file.mli mugsy_guide_tree.mli pm_job.mli \
-	queue_job.mli sge_interface.mli queue_driver.mli \
-	queue_server.mli
+	queue_job.mli sge_interface.mli local_interface.mli \
+	queue_driver.mli queue_server.mli
 
 native_cmx=$(sources:%.ml=%.cmx)
 

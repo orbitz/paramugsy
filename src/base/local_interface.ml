@@ -5,12 +5,12 @@ module Job_status = Queue_job.Job_status
 
 type t = Job_status.job_done Ivar.t
 
-let run_job ret job =
-  Async_cmd.get_output ~text:"" ~prog:job ~args:[] >>= function
+let run_job t job =
+  Async_cmd.get_output ~text:"" ~prog:job.Queue_job.payload ~args:[] >>> function
     | Result.Ok (_, _) ->
-      Ivar.fill ret (Job_status.D Job_status.Completed)
+      Ivar.fill t Job_status.Completed
     | Result.Error _ ->
-      Ivar.fill ret (Job_status.D Job_status.Failed)
+      Ivar.fill t Job_status.Failed
 
 
 (*
@@ -19,14 +19,14 @@ let run_job ret job =
  * **************************************************
  *)
 let submit job =
-  let ret = Ivar.create () in
-  run_job ret job;
-  Deferred.return ret
+  let t = Ivar.create () in
+  run_job t job;
+  Deferred.return (Some t)
 
 let status t =
   if Ivar.is_full t then begin
     Ivar.read t >>= fun r ->
-    Deferred.return (Some r)
+    Deferred.return (Some (Job_status.D r))
   end
   else
     Deferred.return (Some (Job_status.R Job_status.Running))
