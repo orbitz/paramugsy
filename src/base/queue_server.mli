@@ -44,7 +44,9 @@ module type QUEUE_SERVER = sig
 end
 
 module Make : functor (Qs : QUEUE_SERVER) -> sig
-  val start  : unit -> Qs.t
-  val stop   : Qs.t -> unit Deferred.t
+  type t
+
+  val start  : unit -> t
+  val stop   : t -> unit Deferred.t
   val submit : t -> Qs.t -> Queue_job.Job_status.job_done Deferred.t
 end

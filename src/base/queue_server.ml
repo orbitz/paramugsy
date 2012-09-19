@@ -45,6 +45,8 @@ module type QUEUE_SERVER = sig
 end
 
 module Make = functor (Qs : QUEUE_SERVER) -> struct
+  type t = Qs.t
+
   module Template = struct
     type t = { name : Queue_job.Name.t
 	     ; pre  : string
