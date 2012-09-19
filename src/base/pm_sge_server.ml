@@ -1,45 +1,30 @@
-open Core_extended.Std
+open Core.Std
 open Async.Std
 open Ort
 open Ort.Function
 
 module Job_status = Queue_job.Job_status
-
-module Job_map = Map.Make(String)
-
-type name   = string
-type queue  = string
+module Name       = Queue_job.Name
+module Queue      = Queue_job.Queue
+module Job_map    = Name.Map
 
 type msg =
-  | Run of (name * queue * Fileutils.file_path * bool Ivar.t)
+  | Run of (Name.t * Queue.t * Fileutils.file_path * bool Ivar.t)
   | Stop
-  | Status of (name * Job_status.t option Ivar.t)
+  | Status of (Name.t * Job_status.t option Ivar.t)
   | Update_jobs
-  | Ack of name
+  | Ack of Name.t
 
 type t = { job_map : (Job_status.t * Sge_interface.t) Job_map.t
 	 ; mq      : msg Tail.t
 	 }
 
-let sec = Core.Std.sec
+let list_of_map = Job_map.to_alist
 
-let list_of_map m = Job_map.fold (fun k v a -> (k, v)::a) m []
-
-let map_of_list =
-  List.fold_left
-    ~f:(fun m (k, v) -> Job_map.add k v m)
-    ~init:Job_map.empty
-
-(*
- * Map, y u no come with this?!?!
- * I should look into using Core's
- * polymorphic map, though
- *)
-let fetch k m =
-  try
-    Some (Job_map.find k m)
-  with Not_found ->
-    None
+let map_of_list l =
+  match Job_map.of_alist l with
+    | `Duplicate_key _ -> failwith "dup key"
+    | `Ok m            -> m
 
 let update_job_v = let module J = Job_status in function
   | (J.R J.Pending, id)   -> Sge_interface.status id
@@ -84,7 +69,11 @@ let handle_run (n, q, script, retv) s =
   Sge_interface.submit job >>= function
     | Some job_id -> begin
       Ivar.fill retv true;
-      let job_map = Job_map.add n (Job_status.R Job_status.Pending, job_id) s.job_map
+      let job_map =
+	Job_map.add
+	  ~key:n
+	  ~data:(Job_status.R Job_status.Pending, job_id)
+	  s.job_map
       in
       Deferred.return {s with job_map = job_map}
     end
@@ -97,7 +86,7 @@ let handle_run (n, q, script, retv) s =
  * Returns the status of a job in the job map
  *)
 let handle_status (n, retv) s =
-  match fetch n s.job_map with
+  match Job_map.find s.job_map n with
     | Some (state, _id) -> begin
       Ivar.fill retv (Some state);
       s
@@ -126,10 +115,10 @@ let handle_update_jobs s =
  * only if it is Completed or Failed
  *)
 let handle_ack n s =
-  match fetch n s.job_map with
+  match Job_map.find s.job_map n with
     | Some (Job_status.D Job_status.Completed, _)
     | Some (Job_status.D Job_status.Failed, _) ->
-      {s with job_map = Job_map.remove n s.job_map}
+      {s with job_map = Job_map.remove s.job_map n}
     | _ ->
       s
 

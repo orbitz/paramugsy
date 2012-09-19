@@ -1,4 +1,4 @@
-open Core_extended.Std
+open Core.Std
 open Async.Std
 
 module Job_status = Queue_job.Job_status

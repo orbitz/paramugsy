@@ -64,6 +64,8 @@ pm_sge_server.cmx: sge_interface.cmx sge_interface.cmi pm_sge_server.cmi
 
 sge_interface.cmx: sge_interface.cmi queue_job.cmx queue_job.cmi
 
+sge_interface.cmi: queue_job.cmi
+
 queue_job.cmx: queue_job.cmi
 
 async_cmd.cmx: async_cmd.cmi

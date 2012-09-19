@@ -1,19 +1,22 @@
-open Core_extended.Std
+open Core.Std
+open Ort
 
-type genome = string
+module Genome_name : sig
+  type t
+  include Identifier with type t := t
+end
 
-type pairwise = genome * genome
+module Job_tree : sig
+  type t =
+    | Nil
+    | Mugsy_profile of (t * t)
+    | Mugsy of Genome_name.t list
+    | Fake_mugsy of Genome_name.t
+end
 
-type job_tree =
-  | Nil
-  | Mugsy_profile of (job_tree * job_tree)
-  | Mugsy of pairwise list
-  | Fake_mugsy of genome
-
-type t = { job_tree   : job_tree
-	 ; pairwise   : pairwise list
-	 ; genome_map : string Map.Make(String).t
+type t = { job_tree   : Job_tree.t
+	 ; genome_map : Fileutils.file_path Genome_name.Map.t
 	 }
 
-val make_job : int -> genome list -> t
+val make_job : int -> Fileutils.file_path list -> t
 val pp       : out_channel -> t -> unit

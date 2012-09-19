@@ -1,4 +1,4 @@
-open Core_extended.Std
+open Core.Std
 
 type 'a phylogenetic_binary_tree =
   | Taxonomic_unit of 'a

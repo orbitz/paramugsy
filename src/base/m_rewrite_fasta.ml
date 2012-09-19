@@ -1,5 +1,5 @@
 (*pp camlp4o *)
-open Core_extended.Std
+open Core.Std
 open Ort
 open Ort.Function
 

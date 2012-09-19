@@ -1,14 +1,7 @@
-open Core_extended.Std
+open Core.Std
 
-module Queue = struct
-  type t      = string
-  let compare = String.compare
-end
-
-module Name = struct
-  type t      = string
-  let compare = String.compare
-end
+module Queue : Identifier = String
+module Name  : Identifier = String
 
 module Job_status = struct
   type job_running = Pending | Running

@@ -1,5 +1,5 @@
 module OUnix = Unix
-open Core_extended.Std
+open Core.Std
 open Async.Std
 
 type pid = int

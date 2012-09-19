@@ -1,6 +1,6 @@
 (*pp camlp4o `ocamlfind query -i-format lwt` `ocamlfind query -predicates syntax,preprocessor -a-format -r lwt.syntax` *)
 open Core_extended
-open Core_extended.Std
+open Core.Std
 open Lwt
 open Ort
 

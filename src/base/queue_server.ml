@@ -1,7 +1,8 @@
-open Core_extended.Std
+open Core.Std
 open Async.Std
 open Ort
 
+module Shell = Core_extended.Std.Shell
 
 type copy_file = { file_list : Fileutils.file_path
 		 ; src_path  : Fileutils.file_path
@@ -56,7 +57,7 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
     let module T = Template
     in
     let replace =
-      [ (Str.regexp "%(NAME)", tv.T.name)
+      [ (Str.regexp "%(NAME)", Queue_job.Name.to_string tv.T.name)
       ; (Str.regexp "%(PRE)",  tv.T.pre)
       ; (Str.regexp "%(BODY)", tv.T.body)
       ; (Str.regexp "%(POST)", tv.T.post)
@@ -99,8 +100,9 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
   let stop qs  = Qs.stop qs
 
   let submit job qs =
-    let copy_to   = List.map ~f:(sync_cmd "sync_to.sh" job.data_queue) job.in_files
-    and copy_from = List.map ~f:(sync_cmd "sync_from.sh" job.data_queue) job.out_files
+    let data_queue = Queue_job.Queue.to_string job.data_queue in
+    let copy_to    = List.map ~f:(sync_cmd "sync_to.sh" data_queue) job.in_files
+    and copy_from  = List.map ~f:(sync_cmd "sync_from.sh" data_queue) job.out_files
     in
     let job =
       { job with

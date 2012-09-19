@@ -1,4 +1,4 @@
-open Core_extended.Std
+open Core.Std
 open Async.Std
 
 let copy_file in_file out_file =

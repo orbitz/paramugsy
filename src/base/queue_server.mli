@@ -1,4 +1,4 @@
-open Core_extended.Std
+open Core.Std
 open Async.Std
 
 open Ort

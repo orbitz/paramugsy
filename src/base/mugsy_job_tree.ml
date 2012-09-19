@@ -1,5 +1,5 @@
 open Core_extended
-open Core_extended.Std
+open Core.Std
 
 type 'a job_tree =
   | Job of 'a

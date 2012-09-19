@@ -1,13 +1,13 @@
-open Core_extended.Std
+open Core.Std
 
 module Queue : sig
-  type t = string
-  val compare : t -> t -> int
+  type t
+  include Identifier with type t := t
 end
 
 module Name : sig
-  type t = string
-  val compare : t -> t -> int
+  type t
+  include Identifier with type t := t
 end
 
 module Job_status : sig

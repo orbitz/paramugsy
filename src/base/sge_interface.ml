@@ -1,4 +1,4 @@
-open Core_extended.Std
+open Core.Std
 open Async.Std
 open Ort.Function
 
@@ -59,7 +59,7 @@ let submit job =
     ; "-S"; "/bin/sh"
     ; "-b"; "n"
     ; "-sync"; "n"
-    ; "-q"; job.Queue_job.queue
+    ; "-q"; Queue_job.Queue.to_string job.Queue_job.queue
     ; job.Queue_job.payload]
   in
   Async_cmd.get_output ~text:"" ~prog:"qsub" ~args:args >>= function

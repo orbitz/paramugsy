@@ -1,4 +1,4 @@
-open Core_extended.Std
+open Core.Std
 open Async.Std
 
 let never_returns = Core.Std.never_returns
