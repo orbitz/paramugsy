@@ -32,7 +32,7 @@ test: $(subdirs_test)
 
 clean: $(subdirs_clean) ocaml_bio_clean seq_clean
 
-base: ocaml_bio/META seq/META
+base: ocaml_bio/META seq/META base/.deps
 
 mugsy: ocaml_bio/META seq/META
 
@@ -72,3 +72,6 @@ seq/META: ocaml-seq
 
 seq_clean:
 	-rm -rf seq
+
+base/.deps:
+	$(MAKE) -C base .deps
