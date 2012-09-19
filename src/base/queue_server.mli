@@ -15,7 +15,7 @@ type t  = { name          : Queue_job.Name.t
 	  ; template_file : Fileutils.file_path
           ; script_dir    : Fileutils.file_path
           ; exec_queue    : Queue_job.Queue.t
-          ; data_queue    : Queue_job.Queue.t
+          ; data_queue    : Queue_job.Queue.t option
 	  ; pre           : command list
 	  ; post          : command list
 	  ; body          : command list

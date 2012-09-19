@@ -16,7 +16,7 @@ type t  = { name          : Queue_job.Name.t
 	  ; template_file : Fileutils.file_path
           ; script_dir    : Fileutils.file_path
           ; exec_queue    : Queue_job.Queue.t
-          ; data_queue    : Queue_job.Queue.t
+          ; data_queue    : Queue_job.Queue.t option
 	  ; pre           : command list
 	  ; post          : command list
 	  ; body          : command list
@@ -100,15 +100,19 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
   let stop qs  = Qs.stop qs
 
   let submit job qs =
-    let data_queue = Queue_job.Queue.to_string job.data_queue in
-    let copy_to    = List.map ~f:(sync_cmd "sync_to.sh" data_queue) job.in_files
-    and copy_from  = List.map ~f:(sync_cmd "sync_from.sh" data_queue) job.out_files
-    in
     let job =
-      { job with
-	pre  = job.pre @ copy_to;
-	post = copy_from @ job.post
-      }
+      match job.data_queue with
+	| Some data_queue ->
+	  let data_queue' = Queue_job.Queue.to_string data_queue in
+	  let copy_to     = List.map ~f:(sync_cmd "sync_to.sh" data_queue') job.in_files
+	  and copy_from   = List.map ~f:(sync_cmd "sync_from.sh" data_queue') job.out_files
+	  in
+	  { job with
+	    pre  = job.pre @ copy_to;
+	    post = copy_from @ job.post
+	  }
+	| None ->
+	  job
     in
     let cmds   = instantiate_template job in
     let dir    = Fileutils.join [job.script_dir; "q_job"] in
