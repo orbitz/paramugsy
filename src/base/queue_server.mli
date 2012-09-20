@@ -3,14 +3,14 @@ open Async.Std
 
 open Ort
 
-module type QUEUE_DRIVER = sig
+module type TASK_DRIVER = sig
   type t
 
   val submit : Queue_job.t -> t option Deferred.t
   val status : t -> Queue_job.Job_status.t option Deferred.t
 end
 
-module Make : functor (Qd : QUEUE_DRIVER) -> sig
+module Make : functor (Td : TASK_DRIVER) -> sig
   type t
 
   val start : unit -> t

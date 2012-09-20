@@ -11,19 +11,20 @@ type copy_file = { file_list : Fileutils.file_path
 
 type command = string
 
-type t  = { name          : Queue_job.Name.t
-	  ; verbose       : bool
-	  ; template_file : Fileutils.file_path
-          ; script_dir    : Fileutils.file_path
-          ; exec_queue    : Queue_job.Queue.t
-          ; data_queue    : Queue_job.Queue.t option
-	  ; pre           : command list
-	  ; post          : command list
-	  ; body          : command list
-	  ; in_files      : copy_file list
-	  ; out_files     : copy_file list
-          }
-
+module Task = struct
+  type t  = { name          : Queue_job.Name.t
+	    ; verbose       : bool
+	    ; template_file : Fileutils.file_path
+            ; script_dir    : Fileutils.file_path
+            ; exec_queue    : Queue_job.Queue.t
+            ; data_queue    : Queue_job.Queue.t option
+	    ; pre           : command list
+	    ; post          : command list
+	    ; body          : command list
+	    ; in_files      : copy_file list
+	    ; out_files     : copy_file list
+            }
+end
 
 module type QUEUE_SERVER = sig
   type t
@@ -38,9 +39,8 @@ module type QUEUE_SERVER = sig
     t ->
     bool Deferred.t
 
-  val status : Queue_job.Name.t -> t -> Queue_job.Job_status.t option Deferred.t
-  val wait   : Queue_job.Name.t -> t -> Queue_job.Job_status.job_done option Deferred.t
-  val ack    : Queue_job.Name.t -> t -> unit
+  val wait : Queue_job.Name.t -> t -> Queue_job.Job_status.job_done option Deferred.t
+  val ack  : Queue_job.Name.t -> t -> unit
 
 end
 
@@ -75,15 +75,15 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
     in
     let module T = Template
     in
-    let template_vars = { T.name = job.name
-			; T.pre  = j job.pre
-			; T.post = j job.post
-			; T.body = j job.body
+    let template_vars = { T.name =   job.Task.name
+			; T.pre  = j job.Task.pre
+			; T.post = j job.Task.post
+			; T.body = j job.Task.body
 			}
     in
     replace_template_vars
       template_vars
-      (Pm_file.read_file job.template_file)
+      (Pm_file.read_file job.Task.template_file)
 
   let sync_cmd script queue copy_file =
     Printf.sprintf
@@ -101,23 +101,29 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
   let start () = Qs.start ()
   let stop qs  = Qs.stop qs
 
-  let submit job qs =
+  let submit qs job =
     let job =
-      match job.data_queue with
+      match job.Task.data_queue with
 	| Some data_queue ->
 	  let data_queue' = Queue_job.Queue.to_string data_queue in
-	  let copy_to     = List.map ~f:(sync_cmd "sync_to.sh" data_queue') job.in_files
-	  and copy_from   = List.map ~f:(sync_cmd "sync_from.sh" data_queue') job.out_files
+	  let copy_to =
+	    List.map
+	      ~f:(sync_cmd "sync_to.sh" data_queue')
+	      job.Task.in_files
+	  and copy_from =
+	    List.map
+	      ~f:(sync_cmd "sync_from.sh" data_queue')
+	      job.Task.out_files
 	  in
 	  { job with
-	    pre  = job.pre @ copy_to;
-	    post = copy_from @ job.post
+	    Task.pre  = job.Task.pre @ copy_to;
+	    Task.post = copy_from @ job.Task.post
 	  }
 	| None ->
 	  job
     in
-    let cmds   = instantiate_template job in
-    let dir    = Fileutils.join [job.script_dir; "q_job"] in
+    let cmds = instantiate_template job in
+    let dir  = Fileutils.join [job.Task.script_dir; "q_job"] in
     Shell.mkdir ~p:() dir;
     let script = Fileutils.join [dir; Printf.sprintf "q%05d.sh" !submit_count] in
     submit_count := !submit_count + 1;
@@ -125,11 +131,11 @@ module Make = functor (Qs : QUEUE_SERVER) -> struct
       script
       ~f:(fun w -> Deferred.return (Writer.write w cmds)) >>= fun () ->
     ignore (Unix.chmod ~perm:0o555 script);
-    Qs.run job.name job.exec_queue script qs >>= function
+    Qs.run job.Task.name job.Task.exec_queue script qs >>= function
       | true -> begin
-	Qs.wait job.name qs >>= function
+	Qs.wait job.Task.name qs >>= function
 	  | Some status -> begin
-	    Qs.ack job.name qs;
+	    Qs.ack job.Task.name qs;
 	    Deferred.return status
 	  end
 	  | None ->

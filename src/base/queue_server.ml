@@ -3,7 +3,7 @@ open Async.Std
 
 open Ort
 
-module type QUEUE_DRIVER = sig
+module type TASK_DRIVER = sig
   type t
 
   val submit : Queue_job.t -> t option Deferred.t
@@ -33,14 +33,15 @@ let map_of_list l =
     | `Duplicate_key _ -> failwith "dup key"
     | `Ok m            -> m
 
-module Make = functor (Qd : QUEUE_DRIVER) -> struct
-  type t = { job_map : (Job_status.t * Qd.t) Job_map.t
+module Make = functor (Td : TASK_DRIVER) -> struct
+
+  type t = { job_map : (Job_status.t * Td.t) Job_map.t
 	   ; mq      : Message.t Tail.t
 	   }
 
   let update_job_v = let module J = Job_status in function
-    | (J.R J.Pending, id)   -> Qd.status id
-    | (J.R J.Running, id)   -> Qd.status id
+    | (J.R J.Pending, id)   -> Td.status id
+    | (J.R J.Running, id)   -> Td.status id
     | (J.D J.Completed, id) -> Deferred.return (Some (J.D J.Completed))
     | (J.D J.Failed, id)    -> Deferred.return (Some (J.D J.Failed))
 
@@ -77,7 +78,7 @@ module Make = functor (Qd : QUEUE_DRIVER) -> struct
 	      ;           payload = script
 	      }
     in
-    Qd.submit job >>= function
+    Td.submit job >>= function
       | Some job_id -> begin
 	Ivar.fill retv true;
 	let job_map =
