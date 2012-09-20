@@ -1,141 +1,201 @@
 open Core.Std
 open Async.Std
+
 open Ort
 
-module Shell = Core_extended.Std.Shell
-
-type copy_file = { file_list : Fileutils.file_path
-		 ; src_path  : Fileutils.file_path
-		 ; dst_path  : Fileutils.file_path
-		 }
-
-type command = string
-
-type t  = { name          : Queue_job.Name.t
-	  ; verbose       : bool
-	  ; template_file : Fileutils.file_path
-          ; script_dir    : Fileutils.file_path
-          ; exec_queue    : Queue_job.Queue.t
-          ; data_queue    : Queue_job.Queue.t option
-	  ; pre           : command list
-	  ; post          : command list
-	  ; body          : command list
-	  ; in_files      : copy_file list
-	  ; out_files     : copy_file list
-          }
-
-
-module type QUEUE_SERVER = sig
+module type QUEUE_DRIVER = sig
   type t
 
-  val start : unit -> t
-  val stop  : t -> unit Deferred.t
-
-  val run :
-    n:Queue_job.Name.t ->
-    q:Queue_job.Queue.t ->
-    Fileutils.file_path ->
-    t ->
-    bool Deferred.t
-
-  val status : Queue_job.Name.t -> t -> Queue_job.Job_status.t option Deferred.t
-  val wait   : Queue_job.Name.t -> t -> Queue_job.Job_status.job_done option Deferred.t
-  val ack    : Queue_job.Name.t -> t -> unit
-
+  val submit : Queue_job.t -> t option Deferred.t
+  val status : t -> Queue_job.Job_status.t option Deferred.t
 end
 
-module Make = functor (Qs : QUEUE_SERVER) -> struct
-  type t = Qs.t
+module Job_status = Queue_job.Job_status
+module Name       = Queue_job.Name
+module Queue      = Queue_job.Queue
+module Job_map    = Name.Map
 
-  module Template = struct
-    type t = { name : Queue_job.Name.t
-	     ; pre  : string
-	     ; post : string
-	     ; body : string
-	     }
-  end
 
-  let replace_template_vars tv s =
-    let module T = Template
+module Message = struct
+  type t =
+    | Run of (Name.t * Queue.t * Fileutils.file_path * bool Ivar.t)
+    | Stop
+    | Status of (Name.t * Job_status.t option Ivar.t)
+    | Update_jobs
+    | Ack of Name.t
+end
+
+
+let list_of_map = Job_map.to_alist
+
+let map_of_list l =
+  match Job_map.of_alist l with
+    | `Duplicate_key _ -> failwith "dup key"
+    | `Ok m            -> m
+
+module Make = functor (Qd : QUEUE_DRIVER) -> struct
+  type t = { job_map : (Job_status.t * Qd.t) Job_map.t
+	   ; mq      : Message.t Tail.t
+	   }
+
+  let update_job_v = let module J = Job_status in function
+    | (J.R J.Pending, id)   -> Qd.status id
+    | (J.R J.Running, id)   -> Qd.status id
+    | (J.D J.Completed, id) -> Deferred.return (Some (J.D J.Completed))
+    | (J.D J.Failed, id)    -> Deferred.return (Some (J.D J.Failed))
+
+  let update_job_wrap (state, id) =
+    update_job_v (state, id) >>= function
+      | Some state ->
+	Deferred.return (state, id)
+      | None ->
+      (* Where'd it go?!?! *)
+	Deferred.return (Job_status.D Job_status.Failed, id)
+
+  let update_job (k, v) =
+    update_job_wrap v >>= fun r ->
+    Deferred.return (k, r)
+
+  (*
+   * Kicks off an Update_jobs message every
+   * 30 seconds.  There is no pusback on this
+   * which may need to be added if updating
+   * a job becomes costly.
+   *)
+  let rec refresh_jobs_msg mq =
+    after (sec 30.) >>> fun () ->
+    if not (Tail.is_closed mq) then begin
+      Tail.extend mq Message.Update_jobs;
+      refresh_jobs_msg mq
+    end
+
+  (*
+   * Runs a qsub command
+   *)
+  let handle_run (n, q, script, retv) s =
+    let job = { Queue_job.queue   = q
+	      ;           payload = script
+	      }
     in
-    let replace =
-      [ (Str.regexp "%(NAME)", Queue_job.Name.to_string tv.T.name)
-      ; (Str.regexp "%(PRE)",  tv.T.pre)
-      ; (Str.regexp "%(BODY)", tv.T.body)
-      ; (Str.regexp "%(POST)", tv.T.post)
-      ]
-    in
-    List.fold_left
-      ~f:(fun s (re, v) -> Str.global_replace re v s)
-      ~init:s
-      replace
-
-  let instantiate_template job =
-    let j = String.concat ~sep:"\n"
-    in
-    let module T = Template
-    in
-    let template_vars = { T.name = job.name
-			; T.pre  = j job.pre
-			; T.post = j job.post
-			; T.body = j job.body
-			}
-    in
-    replace_template_vars
-      template_vars
-      (Pm_file.read_file job.template_file)
-
-  let sync_cmd script queue copy_file =
-    Printf.sprintf
-      "%s %s %s %s %s"
-      script
-      queue
-      copy_file.file_list
-      copy_file.src_path
-      copy_file.dst_path
-
-  (* We want a little counter for submissions *)
-  let submit_count = ref 0
-
-
-  let start () = Qs.start ()
-  let stop qs  = Qs.stop qs
-
-  let submit job qs =
-    let job =
-      match job.data_queue with
-	| Some data_queue ->
-	  let data_queue' = Queue_job.Queue.to_string data_queue in
-	  let copy_to     = List.map ~f:(sync_cmd "sync_to.sh" data_queue') job.in_files
-	  and copy_from   = List.map ~f:(sync_cmd "sync_from.sh" data_queue') job.out_files
-	  in
-	  { job with
-	    pre  = job.pre @ copy_to;
-	    post = copy_from @ job.post
-	  }
-	| None ->
-	  job
-    in
-    let cmds   = instantiate_template job in
-    let dir    = Fileutils.join [job.script_dir; "q_job"] in
-    Shell.mkdir ~p:() dir;
-    let script = Fileutils.join [dir; Printf.sprintf "q%05d.sh" !submit_count] in
-    submit_count := !submit_count + 1;
-    Writer.with_file
-      script
-      ~f:(fun w -> Deferred.return (Writer.write w cmds)) >>= fun () ->
-    ignore (Unix.chmod ~perm:0o555 script);
-    Qs.run job.name job.exec_queue script qs >>= function
-      | true -> begin
-	Qs.wait job.name qs >>= function
-	  | Some status -> begin
-	    Qs.ack job.name qs;
-	    Deferred.return status
-	  end
-	  | None ->
-	    Deferred.return Queue_job.Job_status.Failed
+    Qd.submit job >>= function
+      | Some job_id -> begin
+	Ivar.fill retv true;
+	let job_map =
+	  Job_map.add
+	    ~key:n
+	    ~data:(Job_status.R Job_status.Pending, job_id)
+	    s.job_map
+	in
+	Deferred.return {s with job_map = job_map}
       end
-      | false ->
-	Deferred.return Queue_job.Job_status.Failed
+      | None -> begin
+	Ivar.fill retv false;
+	Deferred.return s
+      end
 
+  (*
+   * Returns the status of a job in the job map
+   *)
+  let handle_status (n, retv) s =
+    match Job_map.find s.job_map n with
+      | Some (state, _id) -> begin
+	Ivar.fill retv (Some state);
+	s
+      end
+      | None -> begin
+	Ivar.fill retv None;
+	s
+      end
+
+  (*
+   * A timer will kick this off every 30 seconds,
+   * so hopefully this takes less than 30 seconds
+   * execute (no pushback yet).
+   *
+   * This updates the state of all running jobs
+   * in the map.
+   *)
+  let handle_update_jobs s =
+    let jobs = list_of_map s.job_map
+    in
+    Deferred.List.map ~f:update_job jobs >>= fun l ->
+    Deferred.return {s with job_map = map_of_list l}
+
+  (*
+   * Acking a message deletes it from the list
+   * only if it is Completed or Failed
+   *)
+  let handle_ack n s =
+    match Job_map.find s.job_map n with
+      | Some (Job_status.D Job_status.Completed, _)
+      | Some (Job_status.D Job_status.Failed, _) ->
+	{s with job_map = Job_map.remove s.job_map n}
+      | _ ->
+	s
+
+  (*
+   * Message dispatcher
+   *)
+  let handle_msg s = function
+    | Message.Run msg     -> handle_run msg s
+    | Message.Stop        -> begin Tail.close_if_open s.mq; Deferred.return s end
+    | Message.Status msg  -> Deferred.return (handle_status msg s)
+    | Message.Update_jobs -> handle_update_jobs s
+    | Message.Ack n       -> Deferred.return (handle_ack n s)
+
+  (*
+   * Message event loop
+   *)
+  let rec loop s =
+    (Stream.next (Tail.collect s.mq)) >>= function
+      | Stream.Nil         -> Deferred.return ()
+      | Stream.Cons (m, _) -> handle_msg s m >>= loop
+
+  let send mq msg = Tail.extend mq msg
+
+  let start_loop = loop
+
+  (*
+   * **************************************************
+   * API
+   * **************************************************
+   *)
+  let start () =
+    let s = { job_map = Job_map.empty
+	    ; mq      = Tail.create ()
+	    }
+    in
+    refresh_jobs_msg s.mq;
+    let _ = start_loop s
+    in
+    s
+
+  let stop s =
+    send s.mq Message.Stop;
+    Deferred.return ()
+
+  let run ~n ~q script s =
+    let ret = Ivar.create ()
+    in
+    send s.mq (Message.Run (n, q, script, ret));
+    Ivar.read ret
+
+  let status n s =
+    let ret = Ivar.create ()
+    in
+    send s.mq (Message.Status (n, ret));
+    Ivar.read ret
+
+  let rec wait n s =
+    let ret = Ivar.create () in
+    let module J = Job_status in
+    send s.mq (Message.Status (n, ret));
+    Ivar.read ret >>= function
+      | None                   -> Deferred.return None
+      | Some (J.D J.Completed) -> Deferred.return (Some J.Completed)
+      | Some (J.D J.Failed)    -> Deferred.return (Some J.Failed)
+      | _                      -> after (sec 30.) >>= fun () -> wait n s
+
+  let ack n s =
+    send s.mq (Message.Ack n)
 end
