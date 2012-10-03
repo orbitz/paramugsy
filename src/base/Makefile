@@ -3,15 +3,15 @@ OCAMLC_OPTS=-package str,core_extended,async,seq,ocaml_bio
 
 tests=async_cmd_test pm_file_test queue_server_test
 
-sources=global_state.ml m_rewrite_fasta.ml async_cmd.ml copy_file.ml \
-	pm_file.ml mugsy_guide_tree.ml pm_job.ml \
-	queue_job.ml sge_interface.ml local_interface.ml \
-	queue_driver.ml queue_server.ml pm_sge_main.ml paramugsy.ml
+cources=global_state.ml       m_rewrite_fasta.ml    async_cmd.ml       copy_file.ml   \
+	pm_file.ml            mugsy_guide_tree.ml   pm_job.ml          queue_job.ml   \
+	sge_interface.ml      queue_server.ml       local_interface.ml script_task.ml \
+	script_task_server.ml queued_task_server.ml job_processor.ml                  \
 
-sources_mli=global_state.mli m_rewrite_fasta.mli async_cmd.mli \
-	pm_file.mli mugsy_guide_tree.mli pm_job.mli \
-	queue_job.mli sge_interface.mli local_interface.mli \
-	queue_driver.mli queue_server.mli
+
+sources=$(cources) paramugsy.ml
+
+sources_mli=$(cources:%.ml=%.mli)
 
 native_cmx=$(sources:%.ml=%.cmx)
 
@@ -31,7 +31,6 @@ paramugsy: $(native_cmx)
 
 test: $(tests)
 	./async_cmd_test
-	./pm_file_test
 	./queue_server_test
 
 async_cmd_test: async_cmd_test.cmx
@@ -39,12 +38,6 @@ async_cmd_test: async_cmd_test.cmx
 	-o async_cmd_test async_cmd.cmx async_cmd_test.cmx
 
 async_cmd_test.cmx: async_cmd_test.ml async_cmd.cmx
-
-pm_file_test: pm_file_test.cmx pm_file.cmx pm_file.cmi
-	ocamlfind ocamlopt -package core_extended,oUnit -thread -linkpkg \
-	-o pm_file_test pm_file.cmx pm_file_test.cmx
-
-pm_file_test.cmx: pm_file_test.ml
 
 queue_server_test: queue_server_test.cmx queue_server.cmx queue_server.cmi \
 	queue_job.cmx pm_file.cmx pm_file.cmi

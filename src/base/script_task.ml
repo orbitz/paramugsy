@@ -1,12 +1,17 @@
 open Core.Std
 
-type t = { pre       : command list
-	 ; post      : command list
-	 ; body      : command list
-	 ; in_files  : copy_file list
-	 ; out_files : copy_file list
-	 }
+open Ort
 
+module Command = struct
+  type t = string
+end
+
+module Copy_file = struct
+  type t = { file_list : Fileutils.file_path
+	   ; src_path  : Fileutils.file_path
+	   ; dst_path  : Fileutils.file_path
+	   }
+end
 
 module Template = struct
   type t = { name : Queue_job.Name.t
@@ -15,6 +20,14 @@ module Template = struct
 	   ; body : string
 	   }
 end
+
+type t = { name      : Queue_job.Name.t
+	 ; pre       : Command.t list
+	 ; post      : Command.t list
+	 ; body      : Command.t list
+	 ; in_files  : Copy_file.t list
+	 ; out_files : Copy_file.t list
+	 }
 
 let replace_template_vars tv s =
   let module T = Template
@@ -51,9 +64,9 @@ let sync_cmd script queue copy_file =
     "%s %s %s %s %s"
     script
     queue
-    copy_file.file_list
-    copy_file.src_path
-    copy_file.dst_path
+    copy_file.Copy_file.file_list
+    copy_file.Copy_file.src_path
+    copy_file.Copy_file.dst_path
 
 let to_string ?(data_queue = None) template t =
   let t =
@@ -69,7 +82,7 @@ let to_string ?(data_queue = None) template t =
 	    ~f:(sync_cmd "sync_from.sh" data_queue')
 	    t.out_files
 	in
-	{ job with
+	{ t with
 	  pre  = t.pre @ copy_to;
 	  post = copy_from @ t.post
 	}

@@ -7,7 +7,7 @@ open Script_task_server
 module Make : functor (Sts : SCRIPT_TASK_SERVER) -> sig
   type t
 
-  val start : run_size -> t
+  val start : int -> t
   val stop  : t -> unit Deferred.t
 
   val submit :

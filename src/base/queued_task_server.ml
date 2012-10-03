@@ -8,9 +8,9 @@ open Script_task_server
 module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
   type msg =
     | Run of ( Queue_job.Name.t
-	     , Queue_job.Queue.t
-	     , Fileutils.file_path
-	     , Queue_job.Job_status.job_done Ivar.t
+	     * Queue_job.Queue.t
+	     * Fileutils.file_path
+	     * Queue_job.Job_status.job_done Ivar.t
              )
     | Done
     | Stop
@@ -44,17 +44,17 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
   let handle_msg t = function
     | Run (n, q, script, ret) -> begin
       whenever (run_job n q script t.sts ret);
-      Deferred.return {t with running = running + 1}
+      Deferred.return {t with running = t.running + 1}
     end
     | Done ->
-      Deferred.return {t with running = running - 1}
+      Deferred.return {t with running = t.running - 1}
     | Stop -> begin
-      Tail.close t.mq;
+      Tail.close_if_open t.mq;
       Deferred.return t
     end
 
   let rec loop t =
-    (Stream.next (Tail.collect s.mq)) >>= function
+    (Stream.next (Tail.collect t.mq)) >>= function
       | Stream.Nil         -> Deferred.return ()
       | Stream.Cons (m, _) -> handle_msg t m >>= loop
 

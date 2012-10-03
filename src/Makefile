@@ -24,6 +24,7 @@ SEQ_INSTALL_FILES = ort_seq.mli ort_seq.cmi \
 	seq.cma seq.cmxa seq.a
 
 .PHONY: all test clean $(SUBDIRS) $(EXTERNAL_APPS) $(subdirs_clean) \
+	base/.deps \
 	seq ocaml_bio seq_lcean ocaml_bio_clean
 
 all: $(SUBDIRS)
