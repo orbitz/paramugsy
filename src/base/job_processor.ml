@@ -1,3 +1,4 @@
+open Core.Std
 open Async.Std
 
 open Ort
@@ -37,8 +38,24 @@ module Task : sig
             }
 end
 
+module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
+  module Queued_task_server = Queued_task_server.Make(Sts)
 
-module Make : functor (Sts : SCRIPT_TASK_SERVER) -> sig
-  val run : t -> int Deferred.t
+  let run_task qts task =
+    let cmds   = Script_task.to_string ~data_queue:task.Task.data_queue task.Task.task in
+    let dir    = Fileutils.join [task.Task.script_dir; "q_job"] in
+    let script = Fileutils.join [dir; Printf.sprintf "q%05s.sh" (Global_state.make_count ())] in
+    Shell.mkdir ~p:() dir;
+    submit_count := !submit_count + 1;
+    Writer.with_file
+      script
+      ~f:(fun w -> Deferred.return (Writer.write w cmds)) >>= fun () ->
+    ignore (Unix.chmod ~perm:0o555 script);
+    Queued_task_server.submit ~n:task.Task.name ~q:task.Task.exec_queue script qts
+
+  let run t =
+    let qts = Queued_task_server.start t.run_size in
+    Queued_task_server.stop qts
+
 end
 

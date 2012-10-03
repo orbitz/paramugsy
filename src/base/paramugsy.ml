@@ -5,13 +5,10 @@ open Ort.Function
 
 type file_path = string
 
-type sge_mode = { sge_out_dir : file_path
-		; sge_sequences : file_path list
-		; exec_q : string
-		; staging_q : string
-		; rsync_options : string
-		; data_host : string
-		}
+module Local_processor =
+  Job_processor.Make(
+    Queue_driver.Make(
+      Queue_server.Make(Local_interface)))
 
 let usage = ""
 

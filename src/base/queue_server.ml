@@ -167,7 +167,7 @@ module Make = functor (Td : TASK_DRIVER) -> struct
 	    }
     in
     refresh_jobs_msg s.mq;
-    let _ = start_loop s
+    ignore (start_loop s);
     in
     s
 

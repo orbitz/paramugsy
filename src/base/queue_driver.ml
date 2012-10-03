@@ -47,82 +47,14 @@ end
 module Make = functor (Qs : QUEUE_SERVER) -> struct
   type t = Qs.t
 
-  module Template = struct
-    type t = { name : Queue_job.Name.t
-	     ; pre  : string
-	     ; post : string
-	     ; body : string
-	     }
-  end
-
-  let replace_template_vars tv s =
-    let module T = Template
-    in
-    let replace =
-      [ (Str.regexp "%(NAME)", Queue_job.Name.to_string tv.T.name)
-      ; (Str.regexp "%(PRE)",  tv.T.pre)
-      ; (Str.regexp "%(BODY)", tv.T.body)
-      ; (Str.regexp "%(POST)", tv.T.post)
-      ]
-    in
-    List.fold_left
-      ~f:(fun s (re, v) -> Str.global_replace re v s)
-      ~init:s
-      replace
-
-  let instantiate_template job =
-    let j = String.concat ~sep:"\n"
-    in
-    let module T = Template
-    in
-    let template_vars = { T.name =   job.Task.name
-			; T.pre  = j job.Task.pre
-			; T.post = j job.Task.post
-			; T.body = j job.Task.body
-			}
-    in
-    replace_template_vars
-      template_vars
-      (Pm_file.read_file job.Task.template_file)
-
-  let sync_cmd script queue copy_file =
-    Printf.sprintf
-      "%s %s %s %s %s"
-      script
-      queue
-      copy_file.file_list
-      copy_file.src_path
-      copy_file.dst_path
-
   (* We want a little counter for submissions *)
   let submit_count = ref 0
-
 
   let start () = Qs.start ()
   let stop qs  = Qs.stop qs
 
   let submit qs job =
-    let job =
-      match job.Task.data_queue with
-	| Some data_queue ->
-	  let data_queue' = Queue_job.Queue.to_string data_queue in
-	  let copy_to =
-	    List.map
-	      ~f:(sync_cmd "sync_to.sh" data_queue')
-	      job.Task.in_files
-	  and copy_from =
-	    List.map
-	      ~f:(sync_cmd "sync_from.sh" data_queue')
-	      job.Task.out_files
-	  in
-	  { job with
-	    Task.pre  = job.Task.pre @ copy_to;
-	    Task.post = copy_from @ job.Task.post
-	  }
-	| None ->
-	  job
-    in
-    let cmds = instantiate_template job in
+    let cmds = Script_task.to_string ~data_queue:job.Task.data_queue job.Task.script in
     let dir  = Fileutils.join [job.Task.script_dir; "q_job"] in
     Shell.mkdir ~p:() dir;
     let script = Fileutils.join [dir; Printf.sprintf "q%05d.sh" !submit_count] in

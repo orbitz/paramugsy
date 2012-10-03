@@ -1,3 +1,6 @@
+open Core.Std
+open Async.Std
+
 let read_file fname =
   let b = Buffer.create 1024
   and fin = open_in fname
@@ -9,3 +12,9 @@ let read_file fname =
   with End_of_file ->
     close_in fin;
     Buffer.contents b
+
+
+let write_lines fname lines =
+  Writer.with_file
+    fname
+    ~f:(fun w -> Deferred.return (List.iter ~f:(Writer.write w) lines))
