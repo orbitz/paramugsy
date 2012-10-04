@@ -57,6 +57,5 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     let qts = Qts.start t.run_size in
     Qts.stop qts >>= fun () ->
     Deferred.return 0
-
 end
 

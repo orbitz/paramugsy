@@ -1,5 +1,6 @@
 open Core.Std
-open Async.Std
+
+open Ort
 
 module Command = Core_extended.Command
 
@@ -9,6 +10,7 @@ module Local_processor =
 module Sge_processor =
   Job_processor.Make(Queue_server.Make(Sge_interface))
 
+(* For both local and sge *)
 let seq_list = ref ""
 let seq_list_f =
   Command.Flag.set_string "-seq-list" seq_list
@@ -39,6 +41,36 @@ let template_file_f =
   Command.Flag.set_string "-template-file" template_file
     ~doc:" Path to template file"
 
+let minlength = ref 30
+let minlength_f =
+  Command.Flag.set_int "-minlength" minlength
+    ~doc:" Minlength to give Mugsy"
+
+let distance = ref 100
+let distance_f =
+  Command.Flag.set_int "-distance" distance
+    ~doc:" Distance to give Mugsy"
+
+let run_size = ref 1
+let local_run_size_f =
+  Command.Flag.set_int "-cores" run_size
+    ~doc:" Number of cores on the machine"
+
+let sge_run_size_f =
+  Command.Flag.set_int "-run-size" run_size
+    ~doc:" Number of jobs to queue"
+
+(* SGE only *)
+let exec_q = ref ""
+let exec_q_f =
+  Command.Flag.set_string "-exec-q" exec_q
+    ~doc:" Exec queue to use"
+
+let data_q = ref ""
+let data_q_f =
+  Command.Flag.set_string "-data-q" data_q
+    ~doc:" Data queue to use (optional)"
+
 let local_cmd_flags =
   [ seq_list_f
   ; out_maf_f
@@ -46,27 +78,143 @@ let local_cmd_flags =
   ; seqs_per_mugsy_f
   ; nucmer_chunk_size_f
   ; template_file_f
+  ; minlength_f
+  ; distance_f
+  ; local_run_size_f
   ]
+
+let sge_cmd_flags =
+  [ seq_list_f
+  ; out_maf_f
+  ; tmp_dir_f
+  ; seqs_per_mugsy_f
+  ; nucmer_chunk_size_f
+  ; template_file_f
+  ; minlength_f
+  ; distance_f
+  ; exec_q_f
+  ; data_q_f
+  ; sge_run_size_f
+  ]
+
+let local_flags () =
+  if !seq_list = "" then
+    failwith "-seq-list must be set";
+
+  if !run_size < 1 then
+    failwith "-cores must be greater than 0";
+
+  if !tmp_dir = "" then
+    failwith "-tmp-dir must be set";
+
+  if !distance < 1 then
+    failwith "-distance must be greater than 0";
+
+  if !minlength < 1 then
+    failwith "-minlength must be greater than 0";
+
+  if !template_file = "" then
+    failwith "-template-file must be set";
+
+  if !seqs_per_mugsy < 1 then
+    failwith "-seqs-per-mugsy must be greater than 0";
+
+  if !nucmer_chunk_size < 1 then
+    failwith "-nucmer-chunk-size must be greater than 0";
+
+  if !out_maf = "" then
+    failwith "-out-maf must be set";
+
+  let seqs =
+    Seq.to_list (Lazy_io.read_file_lines ~close:true (open_in !seq_list))
+  in
+  let module J = Job_processor in
+  { J.seq_list       = seqs
+  ;   run_size       = !run_size
+  ;   exec_q         = Queue_job.Queue.of_string ""
+  ;   data_q         = None
+  ;   tmp_dir        = !tmp_dir
+  ;   distance       = !distance
+  ;   minlength      = !minlength
+  ;   template_file  = !template_file
+  ;   seqs_per_mugsy = !seqs_per_mugsy
+  ;   nucmer_chunk   = !nucmer_chunk_size
+  ;   out_maf        = !out_maf
+  }
+
+
+let sge_flags () =
+  if !seq_list = "" then
+    failwith "-seq-list must be set";
+
+  if !run_size < 1 then
+    failwith "-cores must be greater than 0";
+
+  if !exec_q = "" then
+    failwith "-exec-q must be set";
+
+  if !tmp_dir = "" then
+    failwith "-tmp-dir must be set";
+
+  if !distance < 1 then
+    failwith "-distance must be greater than 0";
+
+  if !minlength < 1 then
+    failwith "-minlength must be greater than 0";
+
+  if !template_file = "" then
+    failwith "-template-file must be set";
+
+  if !seqs_per_mugsy < 1 then
+    failwith "-seqs-per-mugsy must be greater than 0";
+
+  if !nucmer_chunk_size < 1 then
+    failwith "-nucmer-chunk-size must be greater than 0";
+
+  if !out_maf = "" then
+    failwith "-out-maf must be set";
+
+  let seqs =
+    Seq.to_list (Lazy_io.read_file_lines ~close:true (open_in !seq_list))
+  in
+  let module J = Job_processor in
+  { J.seq_list       = seqs
+  ;   run_size       = !run_size
+  ;   exec_q         = Queue_job.Queue.of_string !exec_q
+  ;   data_q         = if !data_q = "" then None else Some (Queue_job.Queue.of_string !data_q)
+  ;   tmp_dir        = !tmp_dir
+  ;   distance       = !distance
+  ;   minlength      = !minlength
+  ;   template_file  = !template_file
+  ;   seqs_per_mugsy = !seqs_per_mugsy
+  ;   nucmer_chunk   = !nucmer_chunk_size
+  ;   out_maf        = !out_maf
+  }
+
+let run runner flags =
+  let module A = Async.Std in
+  A.upon
+    (runner flags)
+    (fun ret -> never_returns (A.Shutdown.shutdown_and_raise ret));
+  never_returns (A.Scheduler.go ())
 
 let local_cmd = Command.create_no_accum
   ~summary:"Run locally"
   ~usage_arg:""
   ~flags:local_cmd_flags
   ~final:(function
-    | [] ->
-      failwith "Not implemented yet"
-    | _ -> failwith "What you doin dawg?")
-  (fun args -> ())
+    | [] -> ()
+    | _  -> failwith "What you doin dawg?")
+  (fun () -> run Local_processor.run (local_flags ()))
 
 let sge_cmd = Command.create_no_accum
   ~summary:"Run on SGE"
   ~usage_arg:""
-  ~flags:local_cmd_flags
+  ~flags:sge_cmd_flags
   ~final:(function
-    | [] ->
-      failwith "Not implemented yet"
-    | _ -> failwith "What you doin dawg?")
-  (fun args -> ())
+    | [] -> ()
+    | _  -> failwith "What you doin dawg?")
+  (fun () -> run Sge_processor.run (sge_flags ()))
 
 let main () =
   Exn.handle_uncaught ~exit:true (fun () ->
