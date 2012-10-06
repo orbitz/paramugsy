@@ -58,9 +58,19 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       qts
 
 
-  let run_nucmers qts nucmer_chunk job_tree =
+  let run_nucmers qts tmp_dir nucmer_chunk job_tree =
     let nucmer_searches = chunk nucmer_chunk (Pm_job.pairwise job_tree) in
-    Deferred.return (Result.Ok ())
+    let module Nt = Nucmer_task in
+    let mk_task searches =
+      let node_name = Global_state.make_count () in
+      let base_dir  = Fileutils.join [tmp_dir; node_name] in
+      Shell.mkdir ~p:() base_dir;
+      Nt.make {Nt.searches = searches; tmp_dir = base_dir}
+    in
+    let tasks   = List.map ~f:mk_task nucmer_searches in
+    let running = List.map ~f:(run_task qts) tasks in
+    Deferred.List.all running >>= fun res ->
+    Deferred.return (Result.all res)
 
   let make_job_tree seqs_per_mugsy seq_list =
     In_thread.run
@@ -77,14 +87,14 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       Deferred.return (Result.Ok ())
   and process_mugsy_profile t qts (left, right) =
     let job_tree = Pm_job.Job_tree.Mugsy_profile (left, right) in
-    run_nucmers qts t.nucmer_chunk job_tree >>= function
+    run_nucmers qts t.tmp_dir t.nucmer_chunk job_tree >>= function
       | Result.Ok () ->
 	Deferred.return (Result.Ok ())
       | Result.Error err ->
 	Deferred.return (Result.Error err)
   and process_genomes t qts genomes =
     let job_tree = Pm_job.Job_tree.Mugsy genomes in
-    run_nucmers qts t.nucmer_chunk job_tree >>= function
+    run_nucmers qts t.tmp_dir t.nucmer_chunk job_tree >>= function
       | Result.Ok () ->
 	Deferred.return (Result.Ok ())
       | Result.Error err ->
