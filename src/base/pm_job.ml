@@ -22,26 +22,20 @@ module Genome_name : Identifier = String
 
 module Genome_map = Genome_name.Map
 
-module Job_tree = struct
-  type t =
-    | Nil
-    | Mugsy_profile of (t * t)
-    | Mugsy of Genome_name.t list
-    | Fake_mugsy of Genome_name.t
-end
-
-type t = { job_tree   : Job_tree.t
-	 ; genome_map : Fileutils.file_path Genome_map.t
-	 }
+type t =
+  | Nil
+  | Mugsy_profile of (t * t)
+  | Mugsy of Fileutils.file_path list
+  | Fake_mugsy of Fileutils.file_path
 
 let rec to_list = function
-  | Job_tree.Nil ->
+  | Nil ->
     []
-  | Job_tree.Mugsy_profile (left, right) ->
+  | Mugsy_profile (left, right) ->
     to_list left @ to_list right
-  | Job_tree.Mugsy genomes ->
+  | Mugsy genomes ->
     genomes
-  | Job_tree.Fake_mugsy genome ->
+  | Fake_mugsy genome ->
     [genome]
 
 let searches genomes =
@@ -57,39 +51,26 @@ let searches genomes =
 let split len l =
   (List.take l (len/2), List.drop l (len/2))
 
-let genome_from_file = Core.Fn.compose Genome_name.of_string Fileutils.basename
-
 let mk_job max_seqs guide_tree =
   let rec mk_job_from_list l =
     match List.length l with
       | 1 ->
-	Job_tree.Fake_mugsy (List.hd_exn l)
+	Fake_mugsy (List.hd_exn l)
       | len when len <= max_seqs ->
-	Job_tree.Mugsy l
+	Mugsy l
       | len ->
 	let (left, right) = split len l
 	in
-	Job_tree.Mugsy_profile (mk_job_from_list left, mk_job_from_list right)
+	Mugsy_profile (mk_job_from_list left, mk_job_from_list right)
   in
   let sequences =
-    List.map
-      ~f:genome_from_file
-      (Mugsy_guide_tree.list_of_guide_tree guide_tree)
+    Mugsy_guide_tree.list_of_guide_tree guide_tree
   in
   mk_job_from_list sequences
 
-let create_genome_map sequences _ =
-  List.fold_left
-    ~f:(fun acc s -> Genome_map.add ~key:(genome_from_file s) ~data:s acc)
-    ~init:Genome_map.empty
-    sequences
-
 let make_job max_seqs sequences =
-  let guide_tree = Mugsy_guide_tree.guide_tree_of_sequences sequences
-  in
-  { job_tree   = mk_job max_seqs guide_tree
-  ; genome_map = create_genome_map sequences guide_tree
-  }
+  let guide_tree = Mugsy_guide_tree.guide_tree_of_sequences sequences in
+  mk_job max_seqs guide_tree
 
 let pairwise job_tree =
   let genomes = to_list job_tree in
@@ -99,25 +80,23 @@ let pp_job_tree fout job_tree =
   let rec pp_job_tree' depth tree =
     Printf.fprintf fout "Depth: %d\n" depth;
     match tree with
-      | Job_tree.Nil ->
+      | Nil ->
 	()
-      | Job_tree.Mugsy_profile (left, right) -> begin
+      | Mugsy_profile (left, right) -> begin
 	pp_job_tree' (depth + 1) left;
 	pp_job_tree' (depth + 1) right
       end
-      | Job_tree.Mugsy genomes ->
+      | Mugsy genomes ->
 	List.iter
-	  ~f:(Core.Fn.compose
-		(Printf.fprintf fout "%s ")
-		Genome_name.to_string)
+	  ~f:(Printf.fprintf fout "%s ")
 	  genomes
-      | Job_tree.Fake_mugsy genome ->
-	Printf.fprintf fout "Fake mugsy: %s\n" (Genome_name.to_string genome)
+      | Fake_mugsy genome ->
+	Printf.fprintf fout "Fake mugsy: %s\n" genome
   in
   pp_job_tree' 0 job_tree
 
-let pp fout jt =
+let pp fout job_tree =
   output_string fout "Job tree:\n";
-  pp_job_tree fout jt.job_tree
+  pp_job_tree fout job_tree
 
-let pp_stdout jt = pp stdout jt
+let pp_stdout job_tree = pp stdout job_tree

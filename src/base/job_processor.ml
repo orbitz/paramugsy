@@ -23,7 +23,6 @@ type t = { seq_list       : Fileutils.file_path list
 
 module Task = struct
   type t  = { template_file : Fileutils.file_path
-            ; script_dir    : Fileutils.file_path
             ; exec_queue    : Queue_job.Queue.t
             ; data_queue    : Queue_job.Queue.t option
 	    ; task          : Script_task.t
@@ -36,7 +35,7 @@ let chunk n l =
 module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
   module Qts = Queued_task_server.Make(Sts)
 
-  let run_task qts task =
+  let run_task tmp_dir qts priority task =
     Pm_file.read_file task.Task.template_file >>= fun template ->
     let cmds =
       Script_task.to_string
@@ -44,7 +43,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 	template
 	task.Task.task
     in
-    let dir    = Fileutils.join [task.Task.script_dir; "q_job"] in
+    let dir    = Fileutils.join [tmp_dir; "q_job"] in
     let script = Fileutils.join [dir; Printf.sprintf "q%s.sh" (Global_state.make_count ())] in
     Shell.mkdir ~p:() dir;
     Writer.with_file
@@ -52,62 +51,99 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       ~f:(fun w -> Deferred.return (Writer.write w cmds)) >>= fun () ->
     ignore (Unix.chmod ~perm:0o555 script);
     Qts.submit
+      ~p:priority
       ~n:task.Task.task.Script_task.name
       ~q:task.Task.exec_queue
       script
       qts
 
+  let background d =
+    let ret = Ivar.create () in
+    whenever (d >>| fun r -> Ivar.fill ret r);
+    ret
 
-  let run_nucmers qts tmp_dir nucmer_chunk job_tree =
-    let nucmer_searches = chunk nucmer_chunk (Pm_job.pairwise job_tree) in
+  let collect_nucmer tasks results =
+    let rec cn accum tasks results =
+      let module Js = Queue_job.Job_status in
+      match (tasks, results) with
+	| (t::ts, Js.Completed::rs) ->
+	  cn (t.Task.task.Script_task.out_paths::accum) ts rs
+	| (_, Js.Failed::_) ->
+	  Result.Error ()
+	| ([], []) ->
+	  Result.Ok accum
+	| (_, _) ->
+	  failwith "Number of jobs don't match"
+    in
+    cn [] tasks results
+
+  let run_nucmers t qts priority job_tree =
+    let nucmer_searches = chunk t.nucmer_chunk (Pm_job.pairwise job_tree) in
     let module Nt = Nucmer_task in
     let mk_task searches =
       let node_name = Global_state.make_count () in
-      let base_dir  = Fileutils.join [tmp_dir; node_name] in
+      let base_dir  = Fileutils.join [t.tmp_dir; node_name] in
       Shell.mkdir ~p:() base_dir;
-      Nt.make {Nt.searches = searches; tmp_dir = base_dir}
+      Nt.make {Nt.searches = searches; tmp_dir = base_dir} >>= function
+	| Result.Ok task ->
+	  Deferred.return
+	    (Result.Ok
+	       { Task.template_file = t.template_file
+	       ;      exec_queue    = t.exec_q
+	       ;      data_queue    = t.data_q
+	       ;      task          = task
+	       })
+	| Result.Error err ->
+	  Deferred.return (Result.Error err)
     in
-    let tasks   = List.map ~f:mk_task nucmer_searches in
-    let running = List.map ~f:(run_task qts) tasks in
-    Deferred.List.all running >>= fun res ->
-    Deferred.return (Result.all res)
+    Deferred.List.map ~f:mk_task nucmer_searches >>= fun task_result ->
+    match Result.all task_result with
+      | Result.Ok tasks ->
+	let running = List.map ~f:(run_task t.tmp_dir qts priority) tasks in
+	Deferred.List.all running >>= fun res ->
+	Deferred.return (collect_nucmer tasks res)
+      | Result.Error err ->
+	Deferred.return (Result.Error err)
 
   let make_job_tree seqs_per_mugsy seq_list =
     In_thread.run
       (fun () -> Pm_job.make_job seqs_per_mugsy seq_list)
 
-  let rec process_tree t qts genome_map = function
-    | Pm_job.Job_tree.Nil ->
+  let rec process_tree t qts priority = function
+    | Pm_job.Nil ->
       Deferred.return (Result.Ok ())
-    | Pm_job.Job_tree.Mugsy_profile (left, right) ->
-      process_mugsy_profile t qts (left, right)
-    | Pm_job.Job_tree.Mugsy genomes ->
-      process_genomes t qts genomes
-    | Pm_job.Job_tree.Fake_mugsy genome ->
+    | Pm_job.Mugsy_profile (left, right) ->
+      process_mugsy_profile t qts priority (left, right)
+    | Pm_job.Mugsy genomes ->
+      process_genomes t qts priority genomes
+    | Pm_job.Fake_mugsy genome ->
       Deferred.return (Result.Ok ())
-  and process_mugsy_profile t qts (left, right) =
-    let job_tree = Pm_job.Job_tree.Mugsy_profile (left, right) in
-    run_nucmers qts t.tmp_dir t.nucmer_chunk job_tree >>= function
-      | Result.Ok () ->
+  and process_mugsy_profile t qts priority (left, right) =
+    let job_tree  = Pm_job.Mugsy_profile (left, right) in
+    let left_ret  = background (process_tree t qts (priority + 1) left) in
+    let right_ret = background (process_tree t qts (priority + 1) right) in
+    run_nucmers t qts priority job_tree >>= function
+      | Result.Ok nucmers -> begin
+	Ivar.read left_ret  >>= fun left_val ->
+	Ivar.read right_ret >>= fun right_val ->
 	Deferred.return (Result.Ok ())
+      end
       | Result.Error err ->
 	Deferred.return (Result.Error err)
-  and process_genomes t qts genomes =
-    let job_tree = Pm_job.Job_tree.Mugsy genomes in
-    run_nucmers qts t.tmp_dir t.nucmer_chunk job_tree >>= function
-      | Result.Ok () ->
+  and process_genomes t qts priority genomes =
+    let job_tree = Pm_job.Mugsy genomes in
+    run_nucmers t qts priority job_tree >>= function
+      | Result.Ok nucmers ->
 	Deferred.return (Result.Ok ())
       | Result.Error err ->
 	Deferred.return (Result.Error err)
 
   let run t =
-    make_job_tree t.seqs_per_mugsy t.seq_list  >>= fun job ->
-    ignore (Pm_job.pp_stdout job);
+    make_job_tree t.seqs_per_mugsy t.seq_list  >>= fun job_tree ->
+    ignore (Pm_job.pp_stdout job_tree);
     let qts        = Qts.start t.run_size in
-    let job_tree   = job.Pm_job.job_tree in
-    let genome_map = job.Pm_job.genome_map in
-    process_tree t qts genome_map job_tree >>= fun res ->
-    Qts.stop qts                           >>= fun () ->
+    process_tree t qts 0 job_tree >>= fun res ->
+    Qts.stop qts                >>= fun () ->
     match res with
       | Result.Ok ()   -> Deferred.return 0
       | Result.Error _ -> Deferred.return 1

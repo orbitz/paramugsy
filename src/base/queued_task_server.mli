@@ -11,6 +11,7 @@ module Make : functor (Sts : SCRIPT_TASK_SERVER) -> sig
   val stop  : t -> unit Deferred.t
 
   val submit :
+    p:int ->
     n:Queue_job.Name.t ->
     q:Queue_job.Queue.t ->
     Fileutils.file_path ->
