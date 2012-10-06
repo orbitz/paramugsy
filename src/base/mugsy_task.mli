@@ -4,6 +4,7 @@ open Async.Std
 open Ort
 
 type t = { seqs      : Fileutils.file_path list
+	 ; mafs      : Fileutils.file_path list
 	 ; distance  : int
 	 ; minlength : int
 	 ; tmp_dir   : Fileutils.file_path

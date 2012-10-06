@@ -7,6 +7,7 @@ cources=global_state.ml       m_rewrite_fasta.ml    async_cmd.ml       copy_file
 	pm_file.ml            mugsy_guide_tree.ml   pm_job.ml          queue_job.ml   \
 	sge_interface.ml      queue_server.ml       local_interface.ml script_task.ml \
 	script_task_server.ml queued_task_server.ml job_processor.ml   nucmer_task.ml \
+	mugsy_task.ml         fake_mugsy_task.ml
 
 
 sources=$(cources) paramugsy.ml

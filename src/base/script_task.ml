@@ -27,6 +27,7 @@ type t = { name      : Queue_job.Name.t
 	 ; body      : Command.t list
 	 ; in_files  : Copy_file.t list
 	 ; out_files : Copy_file.t list
+	 ; out_paths : String.t String.Map.t
 	 }
 
 let replace_template_vars tv s =

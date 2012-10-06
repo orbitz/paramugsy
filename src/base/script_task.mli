@@ -1,3 +1,5 @@
+open Core.Std
+
 open Ort
 
 module Copy_file : sig
@@ -17,6 +19,7 @@ type t = { name      : Queue_job.Name.t
 	 ; body      : Command.t list
 	 ; in_files  : Copy_file.t list
 	 ; out_files : Copy_file.t list
+	 ; out_paths : String.t String.Map.t
 	 }
 
 val to_string : ?data_queue:(Queue_job.Queue.t option) -> string -> t -> string

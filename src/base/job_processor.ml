@@ -57,28 +57,49 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       script
       qts
 
+
+  let run_nucmers qts nucmer_chunk job_tree =
+    let nucmer_searches = chunk nucmer_chunk (Pm_job.pairwise job_tree) in
+    Deferred.return (Result.Ok ())
+
   let make_job_tree seqs_per_mugsy seq_list =
     In_thread.run
       (fun () -> Pm_job.make_job seqs_per_mugsy seq_list)
 
-  let process_tree t = function
+  let rec process_tree t qts genome_map = function
     | Pm_job.Job_tree.Nil ->
-      Deferred.return ()
-    | Pm_job.Job_tree.Mugsy_profile (left, right) as job_tree ->
-      let nucmer_searches = chunk t.nucmer_chunk (Pm_job.pairwise job_tree) in
-      Deferred.return ()
-    | Pm_job.Job_tree.Mugsy genomes as job_tree ->
-      let nucmer_searches = chunk t.nucmer_chunk (Pm_job.pairwise job_tree) in
-      Deferred.return ()
+      Deferred.return (Result.Ok ())
+    | Pm_job.Job_tree.Mugsy_profile (left, right) ->
+      process_mugsy_profile t qts (left, right)
+    | Pm_job.Job_tree.Mugsy genomes ->
+      process_genomes t qts genomes
     | Pm_job.Job_tree.Fake_mugsy genome ->
-      Deferred.return ()
-
+      Deferred.return (Result.Ok ())
+  and process_mugsy_profile t qts (left, right) =
+    let job_tree = Pm_job.Job_tree.Mugsy_profile (left, right) in
+    run_nucmers qts t.nucmer_chunk job_tree >>= function
+      | Result.Ok () ->
+	Deferred.return (Result.Ok ())
+      | Result.Error err ->
+	Deferred.return (Result.Error err)
+  and process_genomes t qts genomes =
+    let job_tree = Pm_job.Job_tree.Mugsy genomes in
+    run_nucmers qts t.nucmer_chunk job_tree >>= function
+      | Result.Ok () ->
+	Deferred.return (Result.Ok ())
+      | Result.Error err ->
+	Deferred.return (Result.Error err)
 
   let run t =
-    make_job_tree t.seqs_per_mugsy t.seq_list  >>= fun job_tree ->
-    ignore (Pm_job.pp_stdout job_tree);
-    let qts = Qts.start t.run_size in
-    Qts.stop qts >>= fun () ->
-    Deferred.return 0
+    make_job_tree t.seqs_per_mugsy t.seq_list  >>= fun job ->
+    ignore (Pm_job.pp_stdout job);
+    let qts        = Qts.start t.run_size in
+    let job_tree   = job.Pm_job.job_tree in
+    let genome_map = job.Pm_job.genome_map in
+    process_tree t qts genome_map job_tree >>= fun res ->
+    Qts.stop qts                           >>= fun () ->
+    match res with
+      | Result.Ok ()   -> Deferred.return 0
+      | Result.Error _ -> Deferred.return 1
 end
 
