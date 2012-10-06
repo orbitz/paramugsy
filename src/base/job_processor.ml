@@ -2,6 +2,7 @@ open Core.Std
 open Async.Std
 
 open Ort
+open Ort.Function
 
 open Script_task_server
 
@@ -29,6 +30,9 @@ module Task = struct
             }
 end
 
+let chunk n l =
+  l |> Seq.of_list |> Seq.chunk n |> Seq.to_list
+
 module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
   module Qts = Queued_task_server.Make(Sts)
 
@@ -53,7 +57,26 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       script
       qts
 
+  let make_job_tree seqs_per_mugsy seq_list =
+    In_thread.run
+      (fun () -> Pm_job.make_job seqs_per_mugsy seq_list)
+
+  let process_tree t = function
+    | Pm_job.Job_tree.Nil ->
+      Deferred.return ()
+    | Pm_job.Job_tree.Mugsy_profile (left, right) as job_tree ->
+      let nucmer_searches = chunk t.nucmer_chunk (Pm_job.pairwise job_tree) in
+      Deferred.return ()
+    | Pm_job.Job_tree.Mugsy genomes as job_tree ->
+      let nucmer_searches = chunk t.nucmer_chunk (Pm_job.pairwise job_tree) in
+      Deferred.return ()
+    | Pm_job.Job_tree.Fake_mugsy genome ->
+      Deferred.return ()
+
+
   let run t =
+    make_job_tree t.seqs_per_mugsy t.seq_list  >>= fun job_tree ->
+    ignore (Pm_job.pp_stdout job_tree);
     let qts = Qts.start t.run_size in
     Qts.stop qts >>= fun () ->
     Deferred.return 0

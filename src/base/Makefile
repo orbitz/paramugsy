@@ -6,7 +6,7 @@ tests=async_cmd_test pm_file_test queue_server_test
 cources=global_state.ml       m_rewrite_fasta.ml    async_cmd.ml       copy_file.ml   \
 	pm_file.ml            mugsy_guide_tree.ml   pm_job.ml          queue_job.ml   \
 	sge_interface.ml      queue_server.ml       local_interface.ml script_task.ml \
-	script_task_server.ml queued_task_server.ml job_processor.ml                  \
+	script_task_server.ml queued_task_server.ml job_processor.ml   nucmer_task.ml \
 
 
 sources=$(cources) paramugsy.ml

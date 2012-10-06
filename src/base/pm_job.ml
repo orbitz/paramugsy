@@ -34,18 +34,25 @@ type t = { job_tree   : Job_tree.t
 	 ; genome_map : Fileutils.file_path Genome_map.t
 	 }
 
-let cross left_seqs right_seqs =
-  let inner_fold acc e =
-    List.fold_left
-      ~f:(fun acc' e' ->
-	(e, e')::acc')
-      ~init:acc
-      right_seqs
+let rec to_list = function
+  | Job_tree.Nil ->
+    []
+  | Job_tree.Mugsy_profile (left, right) ->
+    to_list left @ to_list right
+  | Job_tree.Mugsy genomes ->
+    genomes
+  | Job_tree.Fake_mugsy genome ->
+    [genome]
+
+let searches genomes =
+  let rec s accum = function
+    | [] ->
+      accum
+    | x::xs ->
+      let pairwise = List.map ~f:(fun g -> (x, g)) xs in
+      s (accum @ pairwise) xs
   in
-  List.fold_left
-    ~f:inner_fold
-    ~init:[]
-    left_seqs
+  s [] genomes
 
 let split len l =
   (List.take l (len/2), List.drop l (len/2))
@@ -84,6 +91,9 @@ let make_job max_seqs sequences =
   ; genome_map = create_genome_map sequences guide_tree
   }
 
+let pairwise job_tree =
+  let genomes = to_list job_tree in
+  searches genomes
 
 let pp_job_tree fout job_tree =
   let rec pp_job_tree' depth tree =
@@ -109,3 +119,5 @@ let pp_job_tree fout job_tree =
 let pp fout jt =
   output_string fout "Job tree:\n";
   pp_job_tree fout jt.job_tree
+
+let pp_stdout jt = pp stdout jt
