@@ -1,8 +1,6 @@
 open Core.Std
 open Async.Std
 
-let never_returns = Core.Std.never_returns
-
 let async_cmd_get_output_test () =
   Async_cmd.get_output ~text:"" ~prog:"echo" ~args:["foo"] >>= function
     | Result.Ok ("foo\n", "") -> begin

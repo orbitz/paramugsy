@@ -1,4 +1,4 @@
-open Core.Std
+open Async.Std
 
 type 'a phylogenetic_binary_tree =
   | Taxonomic_unit of 'a
@@ -6,5 +6,5 @@ type 'a phylogenetic_binary_tree =
 
 type mugsy_tree = string phylogenetic_binary_tree
 
-val guide_tree_of_sequences : string list -> mugsy_tree
-val list_of_guide_tree : mugsy_tree -> string list
+val guide_tree_of_sequences : string list -> mugsy_tree Deferred.t
+val list_of_guide_tree      : mugsy_tree -> string list

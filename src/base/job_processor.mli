@@ -15,6 +15,7 @@ type t = { seq_list       : Fileutils.file_path list
 	 ; seqs_per_mugsy : int
 	 ; nucmer_chunk   : int
 	 ; out_maf        : Fileutils.file_path
+	 ; logger         : 'a . ('a, unit, string, unit) format4 -> 'a
 	 }
 
 module Task : sig

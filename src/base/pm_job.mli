@@ -1,4 +1,6 @@
 open Core.Std
+open Async.Std
+
 open Ort
 
 module Genome_name : sig
@@ -12,7 +14,7 @@ type t =
   | Mugsy of Fileutils.file_path list
   | Fake_mugsy of Fileutils.file_path
 
-val make_job  : int -> Fileutils.file_path list -> t
+val make_job  : int -> Fileutils.file_path list -> t Deferred.t
 val pairwise  : t -> (Fileutils.file_path * Fileutils.file_path) list
 val pp        : out_channel -> t -> unit
 val pp_stdout : t -> unit

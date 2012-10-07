@@ -140,6 +140,7 @@ let local_flags () =
   ;   seqs_per_mugsy = !seqs_per_mugsy
   ;   nucmer_chunk   = !nucmer_chunk_size
   ;   out_maf        = !out_maf
+  ;   logger         = Async.Std.Writer.writef (Async.Std.Writer.create (Async.Std.Fd.stdout ()))
   }
 
 
@@ -189,14 +190,14 @@ let sge_flags () =
   ;   seqs_per_mugsy = !seqs_per_mugsy
   ;   nucmer_chunk   = !nucmer_chunk_size
   ;   out_maf        = !out_maf
+  ;   logger         = Async.Std.Writer.writef (Async.Std.Writer.create (Async.Std.Fd.stdout ()))
   }
 
 let run runner flags =
-  let module A = Async.Std in
-  A.upon
-    (runner flags)
-    (fun ret -> never_returns (A.Shutdown.shutdown_and_raise ret));
-  never_returns (A.Scheduler.go ())
+  let open Async.Std in
+  ignore (after (sec 0.) >>= fun () ->
+	  runner flags);
+  never_returns (Scheduler.go ())
 
 let local_cmd = Command.create_no_accum
   ~summary:"Run locally"

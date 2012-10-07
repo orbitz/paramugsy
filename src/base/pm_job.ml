@@ -16,6 +16,8 @@
  *    of genome name to the filename is also provided.
  *)
 open Core.Std
+open Async.Std
+
 open Ort
 
 module Genome_name : Identifier = String
@@ -69,8 +71,10 @@ let mk_job max_seqs guide_tree =
   mk_job_from_list sequences
 
 let make_job max_seqs sequences =
-  let guide_tree = Mugsy_guide_tree.guide_tree_of_sequences sequences in
-  mk_job max_seqs guide_tree
+  Printf.printf "HERE!\n";
+  Mugsy_guide_tree.guide_tree_of_sequences sequences >>= fun guide_tree ->
+  Printf.printf "HERE2!\n";
+  Deferred.return (mk_job max_seqs guide_tree)
 
 let pairwise job_tree =
   let genomes = to_list job_tree in
@@ -86,17 +90,19 @@ let pp_job_tree fout job_tree =
 	pp_job_tree' (depth + 1) left;
 	pp_job_tree' (depth + 1) right
       end
-      | Mugsy genomes ->
+      | Mugsy genomes -> begin
 	List.iter
 	  ~f:(Printf.fprintf fout "%s ")
-	  genomes
+	  genomes;
+	Printf.printf "\n"
+      end
       | Fake_mugsy genome ->
 	Printf.fprintf fout "Fake mugsy: %s\n" genome
   in
   pp_job_tree' 0 job_tree
 
 let pp fout job_tree =
-  output_string fout "Job tree:\n";
+  Printf.fprintf fout "Job tree:\n";
   pp_job_tree fout job_tree
 
 let pp_stdout job_tree = pp stdout job_tree

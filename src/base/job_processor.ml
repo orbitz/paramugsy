@@ -19,6 +19,7 @@ type t = { seq_list       : Fileutils.file_path list
 	 ; seqs_per_mugsy : int
 	 ; nucmer_chunk   : int
 	 ; out_maf        : Fileutils.file_path
+	 ; logger         : 'a . ('a, unit, string, unit) format4 -> 'a
 	 }
 
 module Task = struct
@@ -106,8 +107,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 	Deferred.return (Result.Error err)
 
   let make_job_tree seqs_per_mugsy seq_list =
-    In_thread.run
-      (fun () -> Pm_job.make_job seqs_per_mugsy seq_list)
+    Pm_job.make_job seqs_per_mugsy seq_list
 
   let rec process_tree t qts priority = function
     | Pm_job.Nil ->
@@ -139,13 +139,15 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 	Deferred.return (Result.Error err)
 
   let run t =
-    make_job_tree t.seqs_per_mugsy t.seq_list  >>= fun job_tree ->
+    t.logger "HERE? %s\n" "there";
+    make_job_tree t.seqs_per_mugsy t.seq_list >>= fun job_tree ->
+    t.logger "THERE\n";
     ignore (Pm_job.pp_stdout job_tree);
-    let qts        = Qts.start t.run_size in
+    let qts = Qts.start t.run_size in
     process_tree t qts 0 job_tree >>= fun res ->
-    Qts.stop qts                >>= fun () ->
+    Qts.stop qts                  >>| fun () ->
     match res with
-      | Result.Ok ()   -> Deferred.return 0
-      | Result.Error _ -> Deferred.return 1
+      | Result.Ok ()   -> never_returns (Shutdown.shutdown_and_raise 0)
+      | Result.Error _ -> never_returns (Shutdown.shutdown_and_raise 1)
 end
 
