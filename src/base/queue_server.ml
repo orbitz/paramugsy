@@ -64,7 +64,7 @@ module Make = functor (Td : TASK_DRIVER) -> struct
    * a job becomes costly.
    *)
   let rec refresh_jobs_msg mq =
-    after (sec 30.) >>> fun () ->
+    after (sec 10.) >>> fun () ->
     if not (Tail.is_closed mq) then begin
       Tail.extend mq Message.Update_jobs;
       refresh_jobs_msg mq
@@ -148,9 +148,14 @@ module Make = functor (Td : TASK_DRIVER) -> struct
    * Message event loop
    *)
   let rec loop s =
-    (Stream.next (Tail.collect s.mq)) >>= function
-      | Stream.Nil         -> Deferred.return ()
-      | Stream.Cons (m, _) -> handle_msg s m >>= loop
+    if not (Tail.is_closed s.mq) then
+      let stream = Tail.collect s.mq in
+      Stream.fold'
+	~f:handle_msg
+	~init:s
+	stream >>= loop
+    else
+      Deferred.return ()
 
   let send mq msg = Tail.extend mq msg
 
@@ -194,7 +199,7 @@ module Make = functor (Td : TASK_DRIVER) -> struct
       | None                   -> Deferred.return None
       | Some (J.D J.Completed) -> Deferred.return (Some J.Completed)
       | Some (J.D J.Failed)    -> Deferred.return (Some J.Failed)
-      | _                      -> after (sec 30.) >>= fun () -> wait n s
+      | _                      -> after (sec 10.) >>= fun () -> wait n s
 
   let ack n s =
     send s.mq (Message.Ack n)

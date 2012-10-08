@@ -7,6 +7,7 @@ let read_file fname =
     ~f:Reader.contents
 
 let write_lines fname lines =
+  let lines_str = String.concat ~sep:"\n" lines in
   Writer.with_file
     fname
-    ~f:(fun w -> Deferred.return (List.iter ~f:(Writer.write w) lines))
+    ~f:(fun w -> Deferred.return (Writer.write w lines_str))

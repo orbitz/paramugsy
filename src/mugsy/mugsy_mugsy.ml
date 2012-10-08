@@ -147,7 +147,7 @@ let rm fname =
   try
     Shell.rm fname
   with
-    | Sys_error _ ->
+    | Shell.Process.Failed _ ->
       ()
 
 let main () =

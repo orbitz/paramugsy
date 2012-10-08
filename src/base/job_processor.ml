@@ -19,7 +19,7 @@ type t = { seq_list       : Fileutils.file_path list
 	 ; seqs_per_mugsy : int
 	 ; nucmer_chunk   : int
 	 ; out_maf        : Fileutils.file_path
-	 ; logger         : 'a . ('a, unit, string, unit) format4 -> 'a
+	 ; logger         : string -> unit
 	 }
 
 module Task = struct
@@ -106,6 +106,61 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       | Result.Error err ->
 	Deferred.return (Result.Error err)
 
+  let run_mugsy t qts priority genomes nucmers =
+    let module Mt = Mugsy_task in
+    let node_name = Global_state.make_count () in
+    let base_dir = Fileutils.join [t.tmp_dir; node_name] in
+    Shell.mkdir ~p:() base_dir;
+    Mt.make { Mt.seqs      = genomes
+	    ;    mafs      = nucmers
+	    ;    distance  = t.distance
+	    ;    minlength = t.minlength
+	    ;    tmp_dir   = base_dir
+	    }
+    >>= function
+      | Result.Ok script_task -> begin
+	let task = { Task.template_file = t.template_file
+		   ;      exec_queue    = t.exec_q
+		   ;      data_queue    = t.data_q
+		   ;      task          = script_task
+		   }
+	in
+	t.logger "Running Mugsy";
+	Pm_file.read_file t.template_file >>= fun template ->
+	t.logger (Script_task.to_string ~data_queue:t.data_q template script_task);
+	run_task t.tmp_dir qts priority task >>= function
+	  | Queue_job.Job_status.Completed ->
+	    Deferred.return (Result.Ok task.Task.task.Script_task.out_paths)
+	  | Queue_job.Job_status.Failed ->
+	    Deferred.return (Result.Error ())
+      end
+      | Result.Error () ->
+	Deferred.return (Result.Error ())
+
+  let run_fake_mugsy t qts priority genome =
+    let module Fmt = Fake_mugsy_task in
+    let node_name = Global_state.make_count () in
+    let base_dir = Fileutils.join [t.tmp_dir; node_name] in
+    Shell.mkdir ~p:() base_dir;
+    Fmt.make {Fmt.fasta = genome; tmp_dir = base_dir} >>= function
+      | Result.Ok script_task -> begin
+	let task = { Task.template_file = t.template_file
+		   ;      exec_queue    = t.exec_q
+		   ;      data_queue    = t.data_q
+		   ;      task          = script_task
+		   }
+	in
+	Pm_file.read_file t.template_file >>= fun template ->
+	t.logger (Script_task.to_string ~data_queue:t.data_q template script_task);
+	run_task t.tmp_dir qts priority task >>= function
+	  | Queue_job.Job_status.Completed ->
+	    Deferred.return (Result.Ok task.Task.task.Script_task.out_paths)
+	  | Queue_job.Job_status.Failed ->
+	    Deferred.return (Result.Error ())
+      end
+      | Result.Error () ->
+	Deferred.return (Result.Error ())
+
   let make_job_tree seqs_per_mugsy seq_list =
     Pm_job.make_job seqs_per_mugsy seq_list
 
@@ -117,13 +172,15 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     | Pm_job.Mugsy genomes ->
       process_genomes t qts priority genomes
     | Pm_job.Fake_mugsy genome ->
-      Deferred.return (Result.Ok ())
+      process_fake_mugsy t qts priority genome
   and process_mugsy_profile t qts priority (left, right) =
     let job_tree  = Pm_job.Mugsy_profile (left, right) in
     let left_ret  = background (process_tree t qts (priority + 1) left) in
     let right_ret = background (process_tree t qts (priority + 1) right) in
+    t.logger (Printf.sprintf "Mugsy_profile Priority: %d - Nucmer: Running" priority);
     run_nucmers t qts priority job_tree >>= function
       | Result.Ok nucmers -> begin
+	t.logger (Printf.sprintf "Priority: %d - Nucmer: Finished" priority);
 	Ivar.read left_ret  >>= fun left_val ->
 	Ivar.read right_ret >>= fun right_val ->
 	Deferred.return (Result.Ok ())
@@ -132,22 +189,35 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 	Deferred.return (Result.Error err)
   and process_genomes t qts priority genomes =
     let job_tree = Pm_job.Mugsy genomes in
+    t.logger (Printf.sprintf "Mugsy Priority: %d - Nucmer: Running" priority);
     run_nucmers t qts priority job_tree >>= function
-      | Result.Ok nucmers ->
+      | Result.Ok nucmers -> begin
+	t.logger (Printf.sprintf "Priority: %d - Nucmer: Finished" priority);
+	let nucmers = List.concat (List.map ~f:String.Map.data nucmers) in
+	ignore (run_mugsy t qts priority genomes nucmers);
 	Deferred.return (Result.Ok ())
+      end
       | Result.Error err ->
 	Deferred.return (Result.Error err)
+  and process_fake_mugsy t qts priority genome =
+    t.logger "Fake Mugsy";
+    ignore (run_fake_mugsy t qts priority genome);
+    Deferred.return (Result.Ok ())
 
   let run t =
-    t.logger "HERE? %s\n" "there";
     make_job_tree t.seqs_per_mugsy t.seq_list >>= fun job_tree ->
-    t.logger "THERE\n";
-    ignore (Pm_job.pp_stdout job_tree);
+    ignore (Pm_job.pp t.logger job_tree);
     let qts = Qts.start t.run_size in
     process_tree t qts 0 job_tree >>= fun res ->
     Qts.stop qts                  >>| fun () ->
     match res with
-      | Result.Ok ()   -> never_returns (Shutdown.shutdown_and_raise 0)
-      | Result.Error _ -> never_returns (Shutdown.shutdown_and_raise 1)
+      | Result.Ok () -> begin
+	t.logger "Succeeded";
+	never_returns (Shutdown.shutdown_and_raise 0)
+      end
+      | Result.Error _ -> begin
+	t.logger "Failed";
+	never_returns (Shutdown.shutdown_and_raise 1)
+      end
 end
 

@@ -16,5 +16,4 @@ type t =
 
 val make_job  : int -> Fileutils.file_path list -> t Deferred.t
 val pairwise  : t -> (Fileutils.file_path * Fileutils.file_path) list
-val pp        : out_channel -> t -> unit
-val pp_stdout : t -> unit
+val pp        : (string -> unit) -> t -> unit

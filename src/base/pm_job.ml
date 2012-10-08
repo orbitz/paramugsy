@@ -50,6 +50,12 @@ let searches genomes =
   in
   s [] genomes
 
+let cross left right =
+  List.concat
+    (List.map
+       ~f:(fun g1 -> List.map ~f:(fun g2 -> (g1, g2)) right)
+       left)
+
 let split len l =
   (List.take l (len/2), List.drop l (len/2))
 
@@ -71,18 +77,22 @@ let mk_job max_seqs guide_tree =
   mk_job_from_list sequences
 
 let make_job max_seqs sequences =
-  Printf.printf "HERE!\n";
   Mugsy_guide_tree.guide_tree_of_sequences sequences >>= fun guide_tree ->
-  Printf.printf "HERE2!\n";
   Deferred.return (mk_job max_seqs guide_tree)
 
-let pairwise job_tree =
-  let genomes = to_list job_tree in
-  searches genomes
+let pairwise = function
+  | Nil ->
+    []
+  | Mugsy_profile (left, right) ->
+    cross (to_list left) (to_list right)
+  | Mugsy genomes ->
+    searches genomes
+  | Fake_mugsy _ ->
+    []
 
-let pp_job_tree fout job_tree =
+let pp_job_tree w job_tree =
   let rec pp_job_tree' depth tree =
-    Printf.fprintf fout "Depth: %d\n" depth;
+    w (Printf.sprintf "Depth: %d" depth);
     match tree with
       | Nil ->
 	()
@@ -92,17 +102,16 @@ let pp_job_tree fout job_tree =
       end
       | Mugsy genomes -> begin
 	List.iter
-	  ~f:(Printf.fprintf fout "%s ")
+	  ~f:w
 	  genomes;
-	Printf.printf "\n"
+	w "\n"
       end
       | Fake_mugsy genome ->
-	Printf.fprintf fout "Fake mugsy: %s\n" genome
+	w (Printf.sprintf "Fake mugsy: %s" genome)
   in
   pp_job_tree' 0 job_tree
 
-let pp fout job_tree =
-  Printf.fprintf fout "Job tree:\n";
-  pp_job_tree fout job_tree
+let pp w job_tree =
+  w "Job tree:";
+  pp_job_tree w job_tree
 
-let pp_stdout job_tree = pp stdout job_tree

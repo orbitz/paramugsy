@@ -1,7 +1,7 @@
 CAMLP4=-pp "camlp4o pa_extend.cmo"
 OCAMLC_OPTS=-package str,core_extended,async,seq,ocaml_bio
 
-tests=async_cmd_test pm_file_test queue_server_test
+tests=async_cmd_test
 
 cources=global_state.ml        async_cmd.ml          m_rewrite_fasta.ml     copy_file.ml       \
 	pm_file.ml             mugsy_guide_tree.ml   pm_job.ml              queue_job.ml       \

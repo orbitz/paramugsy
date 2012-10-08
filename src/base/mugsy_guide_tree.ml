@@ -63,8 +63,7 @@ let rec map ~f = function
   | Taxonomic_unit tu ->
     Taxonomic_unit (f tu)
 
-let tree_of_string str = load_guide_tree (Seq.of_list [str])
-
+let tree_of_string str = load_guide_tree (Seq.of_list str)
 
 (*
  * Create a guide tree from a list of sequence files.  The entry names in the
@@ -78,21 +77,14 @@ let guide_tree_of_sequences sequences =
       ~f:(fun s -> (Fileutils.basename s, s))
       sequences
   in
-  Printf.printf "seqs: '%s'\n" seqs;
   let open Async.Std in
-  Async_cmd.get_output
-    ~text:seqs
-    ~prog:"bash"
-    ~args:["-c"; "strip_sequences.sh | muscle -clusteronly -tree1 - -maxmb 99999999"]
-    >>= function
-      | Result.Ok (tree, _) -> begin
-	Printf.printf "Succeeded\n";
-	Deferred.return
-	  (map
-	     ~f:(List.Assoc.find_exn ~equal:(=) path_map)
-	     (tree_of_string tree))
-      end
-      | Result.Error _ -> begin
-	Printf.printf "EXCEEEEPTPTTION\n";
-	Deferred.return (tree_of_string "")
-      end
+  In_thread.run
+    (fun () ->
+      Core_extended.Shell.sh_lines
+	~echo:true
+	~input:seqs
+	"strip_sequences.sh | muscle -clusteronly -tree1 - -maxmb 99999999") >>= fun tree ->
+  Deferred.return
+    (map
+       ~f:(List.Assoc.find_exn ~equal:(=) path_map)
+       (tree_of_string tree))

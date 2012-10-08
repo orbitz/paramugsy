@@ -26,15 +26,20 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 	   ; mq       : msg Tail.t
 	   }
 
+
   let task_compare (pri1, _, _, _, _) (pri2, _, _, _, _) = Int.compare pri2 pri1
 
-  let run_job n q script sts ret =
+  let send mq msg =
+    Tail.extend mq msg
+
+  let run_job mq n q script sts ret =
     Sts.run ~n:n ~q:q script sts >>= function
       | true -> begin
 	Sts.wait n sts >>= function
 	  | Some status -> begin
 	    Sts.ack n sts;
 	    Ivar.fill ret status;
+	    send mq Done;
 	    Deferred.return ()
 	  end
 	  | None -> begin
@@ -50,7 +55,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
   let handle_msg t = function
     | Run (p, n, q, script, ret) -> begin
       if t.running < t.run_size then begin
-	whenever (run_job n q script t.sts ret);
+	whenever (run_job t.mq n q script t.sts ret);
 	Deferred.return {t with running = t.running + 1}
       end
       else begin
@@ -61,7 +66,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     | Done -> begin
       match Heap.pop t.queue with
 	| Some (_, n ,q, script, ret) -> begin
-	  whenever (run_job n q script t.sts ret);
+	  whenever (run_job t.mq n q script t.sts ret);
 	  Deferred.return t
 	end
 	| None ->
@@ -72,13 +77,15 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       Deferred.return t
     end
 
-  let rec loop t =
-    (Stream.next (Tail.collect t.mq)) >>= function
-      | Stream.Nil         -> Deferred.return ()
-      | Stream.Cons (m, _) -> handle_msg t m >>= loop
-
-  let send mq msg =
-    Tail.extend mq msg
+  let rec loop s =
+    if not (Tail.is_closed s.mq) then
+      let stream = Tail.collect s.mq in
+      Stream.fold'
+	~f:handle_msg
+	~init:s
+	stream >>= loop
+    else
+      Deferred.return ()
 
   let start run_size =
     let t = { sts      = Sts.start ()

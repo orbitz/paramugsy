@@ -24,7 +24,7 @@ let make t =
       t.tmp_dir
       "+%Y%m%d%H%M%S"
     ; Printf.sprintf
-      "mugsy_mugsy -out_dir %s -seq_list %s -maf_list %s -minlenght %d -distance %d -debug"
+      "mugsy_mugsy -out_dir %s -seq_list %s -maf_list %s -minlength %d -distance %d -debug"
       t.tmp_dir
       seqs_file_list
       mafs_file_list

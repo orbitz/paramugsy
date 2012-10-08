@@ -12,12 +12,10 @@ export MUGSY_INSTALL=$PARAMUGSY_INSTALL
 
 mkdir -p /mnt/tmp
 cd /mnt/tmp
-
-echo %(NAME)
-
+# Pre
 %(PRE)
-
+# Body
 %(BODY)
-
+# Post
 %(POST)
 

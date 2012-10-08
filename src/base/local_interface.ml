@@ -12,7 +12,6 @@ let run_job t job =
     | Result.Error _ ->
       Ivar.fill t Job_status.Failed
 
-
 (*
  * **************************************************
  * API
@@ -28,5 +27,6 @@ let status t =
     Ivar.read t >>= fun r ->
     Deferred.return (Some (Job_status.D r))
   end
-  else
+  else begin
     Deferred.return (Some (Job_status.R Job_status.Running))
+  end
