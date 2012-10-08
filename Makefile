@@ -1,34 +1,29 @@
-.PHONY: all
+OCAMLPATH:=$(PWD)/src:$(OCAMLPATH)
+
+.PHONY: all test clean \
+	setup core-install get-deps get-ocaml-bio get-ocaml-seq \
+	clean-deps
+
 all:
-	@cd src_base && $(MAKE) byte-code 
-	@cd src_profiles && $(MAKE) byte-code
-	@cd src_nucmer && $(MAKE) byte-code
-	@cd src_mugsy && $(MAKE) byte-code
-	@cd src_profiles_cpp && $(MAKE)
+	$(MAKE) -C src
 
-.PHONY: native
-native:
-	@cd src_base && $(MAKE) native-code 
-	@cd src_profiles && $(MAKE) native-code
-	@cd src_nucmer && $(MAKE) native-code
-	@cd src_mugsy && $(MAKE) native-code
-	@cd src_profiles_cpp && $(MAKE)
+test:
+	$(MAKE) -C src test
 
+setup: get-deps
 
-.PHONY: debug
-debug:
-	@cd src_base && $(MAKE) debug-code
-	@cd src_profiles && $(MAKE) debug-code
-	@cd src_nucmer && $(MAKE) debug-code
-	@cd src_mugsy && $(MAKE) debug-code
-	@cd src_profiles_cpp && $(MAKE)
+get-deps: get-ocaml-bio get-ocaml-seq
 
+get-ocaml-bio:
+	cd src && git clone https://github.com/orbitz/ocaml-bio.git
 
-.PHONY:	clean
+get-ocaml-seq:
+	cd src && git clone https://github.com/orbitz/ocaml-seq.git
+
+clean-deps:
+	rm -rf src/ocaml-bio
+	rm -rf src/ocaml-seq
+
 clean:
-	@cd src_base && $(MAKE) clean
-	@cd src_profiles && $(MAKE) clean
-	@cd src_nucmer && $(MAKE) clean
-	@cd src_mugsy && $(MAKE) clean
-	@cd src_profiles_cpp && $(MAKE) clean
+	$(MAKE) -C src clean
 

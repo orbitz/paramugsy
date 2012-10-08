@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 PARAMUGSY_INSTALL=/opt/paramugsy
 
 export PATH=$PATH:/opt/mugsy_x86-64/MUMmer3.20
@@ -12,5 +12,10 @@ export MUGSY_INSTALL=$PARAMUGSY_INSTALL
 
 mkdir -p /mnt/tmp
 cd /mnt/tmp
-
+# Pre
+%(PRE)
+# Body
+%(BODY)
+# Post
+%(POST)
 
