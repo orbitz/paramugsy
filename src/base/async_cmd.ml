@@ -71,11 +71,10 @@ let get_output ~text ~prog ~args =
   (* Writer.write pi.stdin text; *)
   let _ = Writer.close pi.stdin
   in
-  wait pi >>= (function
-    | `Exited 0 -> begin
-      (Deferred.both (read_all pi.stdout) (read_all pi.stderr)) >>= (fun
-	(stdout, stderr) ->
-	  Deferred.return (Result.Ok (stdout, stderr)))
-    end
+  wait pi >>= function
+    | `Exited 0 ->
+      Deferred.both (read_all pi.stdout) (read_all pi.stderr) >>= fun (stdout, stderr) ->
+      Deferred.return (Result.Ok (stdout, stderr))
     | err ->
-      Deferred.return (Result.Error err))
+      Deferred.both (read_all pi.stdout) (read_all pi.stderr) >>= fun (stdout, stderr) ->
+      Deferred.return (Result.Error (err ,(stdout, stderr)))

@@ -1,10 +1,9 @@
-(*pp camlp4o *)
 open Core.Std
 open Ort
 open Ort.Function
 
-let species_name fname = 
-  let species_name = 
+let species_name fname =
+  let species_name =
     match String.lsplit2 ~on:'.' (Fileutils.basename fname) with
       | Some (species, _) ->
 	species
@@ -12,8 +11,8 @@ let species_name fname =
 	Fileutils.basename fname
   in
   let species_name_clean =
-    species_name 
-    |> String.tr ~target:'-' ~replacement:'_' 
+    species_name
+    |> String.tr ~target:'-' ~replacement:'_'
   in
   species_name_clean
 
@@ -48,7 +47,7 @@ let rec rewrite_headers_stream species sin =
 	  raise (Failure ("Unknown line: " ^ l))
     end
     | Some l when not (String.is_empty l) && l.[0] = '>' -> begin
-      let cleaned_name = 
+      let cleaned_name =
 	(String.drop_prefix l 1) |>
 	    String.tr ~target:'-' ~replacement:'_' |>
 		String.tr ~target:'.' ~replacement:'_' |>

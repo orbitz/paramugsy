@@ -9,8 +9,12 @@ let run_job t job =
   Async_cmd.get_output ~text:"" ~prog:job.Queue_job.payload ~args:[] >>> function
     | Result.Ok (_, _) ->
       Ivar.fill t Job_status.Completed
-    | Result.Error _ ->
+    | Result.Error (_, (stdout, stderr)) -> begin
+      Global_state.logger (Printf.sprintf "Failed: %s" job.Queue_job.payload);
+      Global_state.logger (Printf.sprintf "Stdout:\n%s" stdout);
+      Global_state.logger (Printf.sprintf "Stderr:\n%s" stderr);
       Ivar.fill t Job_status.Failed
+    end
 
 (*
  * **************************************************

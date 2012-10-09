@@ -199,7 +199,37 @@ let sge_flags () =
   ;   logger         = logger ()
   }
 
+let rec print_lines fout sin =
+  match Seq.next sin with
+    | Some l -> begin
+      output_string fout l;
+      output_char fout '\n';
+      print_lines fout sin
+    end
+    | None ->
+      ()
+
+let rewrite_sequences sequences tmp_dir =
+  let rewrite_sequence seq =
+    let species_name = M_rewrite_fasta.species_name seq in
+    let fout_name    = Fileutils.join [tmp_dir; species_name] in
+    let fout         = open_out fout_name in
+    print_lines fout (M_rewrite_fasta.rewrite_headers seq);
+    close_out fout;
+    fout_name
+  in
+  Core_extended.Shell.mkdir ~p:() tmp_dir;
+  List.map ~f:rewrite_sequence sequences
+
 let run runner flags =
+  Core_extended.Shell.mkdir ~p:() flags.Job_processor.tmp_dir;
+  let flags =
+    {flags with Job_processor.seq_list =
+	rewrite_sequences
+	  flags.Job_processor.seq_list
+	  flags.Job_processor.tmp_dir
+    }
+  in
   let open Async.Std in
   ignore (after (sec 0.) >>= fun () ->
 	  runner flags);

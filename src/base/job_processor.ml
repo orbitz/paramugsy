@@ -78,6 +78,50 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     in
     cn [] tasks results
 
+  let collect_nucmer_mafs nucmers =
+    let mash ~init =
+      String.Map.fold
+	~f:(fun ~key ~data acc ->
+	  String.Map.add ~key ~data acc)
+	~init
+    in
+    let mashed =
+      List.fold_left
+	~f:(fun acc -> mash ~init:acc)
+	~init:String.Map.empty
+	nucmers
+    in
+    List.fold_left
+      ~f:(fun acc k ->
+	if String.is_suffix ~suffix:"-maf" k then
+	  (String.Map.find_exn mashed k)::acc
+	else
+	  acc)
+      ~init:[]
+      (String.Map.keys mashed)
+
+  let collect_nucmer_deltas nucmers =
+    let mash ~init =
+      String.Map.fold
+	~f:(fun ~key ~data acc ->
+	  String.Map.add ~key ~data acc)
+	~init
+    in
+    let mashed =
+      List.fold_left
+	~f:(fun acc -> mash ~init:acc)
+	~init:String.Map.empty
+	nucmers
+    in
+    List.fold_left
+      ~f:(fun acc k ->
+	if String.is_suffix ~suffix:"-delta" k then
+	  (String.Map.find_exn mashed k)::acc
+	else
+	  acc)
+      ~init:[]
+      (String.Map.keys mashed)
+
   let run_nucmers t qts priority job_tree =
     let nucmer_searches = chunk t.nucmer_chunk (Pm_job.pairwise job_tree) in
     let module Nt = Nucmer_task in
@@ -126,8 +170,36 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 		   }
 	in
 	t.logger "Running Mugsy";
-	Pm_file.read_file t.template_file >>= fun template ->
-	t.logger (Script_task.to_string ~data_queue:t.data_q template script_task);
+	run_task t.tmp_dir qts priority task >>= function
+	  | Queue_job.Job_status.Completed ->
+	    Deferred.return (Result.Ok task.Task.task.Script_task.out_paths)
+	  | Queue_job.Job_status.Failed ->
+	    Deferred.return (Result.Error ())
+      end
+      | Result.Error () ->
+	Deferred.return (Result.Error ())
+
+  let run_mugsy_profiles t qts priority left_maf right_maf nucmer_deltas =
+    let module Mpt = Mugsy_profiles_task in
+    let node_name  = Global_state.make_count () in
+    let base_dir   = Fileutils.join [t.tmp_dir; node_name] in
+    Shell.mkdir ~p:() base_dir;
+    Mpt.make { Mpt.left_maf      = left_maf
+	     ;     right_maf     = right_maf
+	     ;     nucmer_deltas = nucmer_deltas
+	     ;     distance      = t.distance
+	     ;     minlength     = t.minlength
+	     ;     tmp_dir       = base_dir
+	     }
+    >>= function
+      | Result.Ok script_task -> begin
+	let task = { Task.template_file = t.template_file
+		   ;      exec_queue    = t.exec_q
+		   ;      data_queue    = t.data_q
+		   ;      task          = script_task
+		   }
+	in
+	t.logger "Running Mugsy profiles";
 	run_task t.tmp_dir qts priority task >>= function
 	  | Queue_job.Job_status.Completed ->
 	    Deferred.return (Result.Ok task.Task.task.Script_task.out_paths)
@@ -150,8 +222,6 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 		   ;      task          = script_task
 		   }
 	in
-	Pm_file.read_file t.template_file >>= fun template ->
-	t.logger (Script_task.to_string ~data_queue:t.data_q template script_task);
 	run_task t.tmp_dir qts priority task >>= function
 	  | Queue_job.Job_status.Completed ->
 	    Deferred.return (Result.Ok task.Task.task.Script_task.out_paths)
@@ -166,7 +236,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 
   let rec process_tree t qts priority = function
     | Pm_job.Nil ->
-      Deferred.return (Result.Ok ())
+      Deferred.return (Result.Error ())
     | Pm_job.Mugsy_profile (left, right) ->
       process_mugsy_profile t qts priority (left, right)
     | Pm_job.Mugsy genomes ->
@@ -181,28 +251,54 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     run_nucmers t qts priority job_tree >>= function
       | Result.Ok nucmers -> begin
 	t.logger (Printf.sprintf "Priority: %d - Nucmer: Finished" priority);
+	let nucmer_deltas = collect_nucmer_deltas nucmers in
 	Ivar.read left_ret  >>= fun left_val ->
 	Ivar.read right_ret >>= fun right_val ->
-	Deferred.return (Result.Ok ())
+	match (left_val, right_val) with
+	  | (Result.Ok left_maf, Result.Ok right_maf) -> begin
+	    run_mugsy_profiles t qts priority left_maf right_maf nucmer_deltas >>= function
+	      | Result.Ok out_paths ->
+		Deferred.return (Result.Ok (String.Map.find_exn out_paths "maf"))
+	      | Result.Error _ -> begin
+		t.logger (Printf.sprintf "Priority: %d - Mugsy_profiles: Failed" priority);
+		Deferred.return (Result.Error ())
+	      end
+	  end
+	  | _ -> begin
+	    t.logger (Printf.sprintf "Priority: %d - Mugsy_profiles: Failed" priority);
+	    Deferred.return (Result.Error ())
+	  end
       end
-      | Result.Error err ->
-	Deferred.return (Result.Error err)
+      | Result.Error _ -> begin
+	t.logger (Printf.sprintf "Priority: %d - Nucmer: Failed" priority);
+	Deferred.return (Result.Error ())
+      end
   and process_genomes t qts priority genomes =
     let job_tree = Pm_job.Mugsy genomes in
     t.logger (Printf.sprintf "Mugsy Priority: %d - Nucmer: Running" priority);
     run_nucmers t qts priority job_tree >>= function
       | Result.Ok nucmers -> begin
 	t.logger (Printf.sprintf "Priority: %d - Nucmer: Finished" priority);
-	let nucmers = List.concat (List.map ~f:String.Map.data nucmers) in
-	ignore (run_mugsy t qts priority genomes nucmers);
-	Deferred.return (Result.Ok ())
+	let nucmer_mafs = collect_nucmer_mafs nucmers in
+	run_mugsy t qts priority genomes nucmer_mafs >>= function
+	  | Result.Ok out_paths ->
+	    Deferred.return (Result.Ok (String.Map.find_exn out_paths "maf"))
+	  | Result.Error _ -> begin
+	    t.logger (Printf.sprintf "Priority: %d - Mugsy: Failed" priority);
+	    Deferred.return (Result.Error ())
+	  end
       end
-      | Result.Error err ->
-	Deferred.return (Result.Error err)
+      | Result.Error _ -> begin
+	t.logger (Printf.sprintf "Priority: %d - Nucmer: Failed" priority);
+	Deferred.return (Result.Error ())
+      end
   and process_fake_mugsy t qts priority genome =
     t.logger "Fake Mugsy";
-    ignore (run_fake_mugsy t qts priority genome);
-    Deferred.return (Result.Ok ())
+    run_fake_mugsy t qts priority genome >>= function
+      | Result.Ok out_paths ->
+	Deferred.return (Result.Ok (String.Map.find_exn out_paths "maf"))
+      | Result.Error _ ->
+	Deferred.return (Result.Error ())
 
   let run t =
     make_job_tree t.seqs_per_mugsy t.seq_list >>= fun job_tree ->
@@ -211,8 +307,9 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     process_tree t qts 0 job_tree >>= fun res ->
     Qts.stop qts                  >>| fun () ->
     match res with
-      | Result.Ok () -> begin
+      | Result.Ok maf -> begin
 	t.logger "Succeeded";
+	t.logger (Printf.sprintf "MAF - %s" maf);
 	never_returns (Shutdown.shutdown_and_raise 0)
       end
       | Result.Error _ -> begin

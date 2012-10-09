@@ -17,4 +17,4 @@ val get_output :
   text:string ->
   prog:string ->
   args:string list ->
-  ((string * string), cmd_exit) Result.t Deferred.t
+  ((string * string), (cmd_exit * (string * string))) Result.t Deferred.t
