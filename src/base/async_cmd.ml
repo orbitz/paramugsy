@@ -12,34 +12,14 @@ type t = { pid    : pid
 
 type cmd_exit = [ `Exited of int | `Signal of int | `Unknown ]
 
-let read_all r =
-  let b = Buffer.create 1024
-  in
-  let rec read_all' () =
-    let str = String.create 4096
-    in
-    Reader.read r str >>= (function
-      | `Ok n -> begin
-	Buffer.add_substring b str 0 n;
-	read_all' ()
-      end
-      | `Eof  -> begin
-	let _ = Reader.close r in
-	Deferred.return (Buffer.contents b)
-      end)
-  in
-  read_all' ()
-
 let wait pi =
-  In_thread.run
-    (fun () ->
-      match OUnix.waitpid [] pi.pid with
-	| (_, OUnix.WEXITED exit_code) ->
-	  `Exited exit_code
-	| (_, OUnix.WSIGNALED signal) ->
-	  `Signal signal
-	| _ ->
-	  `Unknown)
+  Unix.wait (`Pid (Core.Std.Pid.of_int pi.pid)) >>= function
+    | (_, Result.Ok ()) ->
+      Deferred.return (`Exited 0)
+    | (_, Result.Error (`Exit_non_zero n)) ->
+      Deferred.return (`Exited n)
+    | (_, _) ->
+      Deferred.return `Unknown
 
 let run ~prog ~args =
   let (c_stdin, m_stdin)   = OUnix.pipe ()
@@ -68,13 +48,14 @@ let run ~prog ~args =
 
 let get_output ~text ~prog ~args =
   run ~prog:prog ~args:args >>= fun pi ->
-  (* Writer.write pi.stdin text; *)
-  let _ = Writer.close pi.stdin
-  in
+  Writer.write pi.stdin text;
+  Writer.close pi.stdin >>= fun () ->
+  let stdout = Reader.contents pi.stdout in
+  let stderr = Reader.contents pi.stderr in
   wait pi >>= function
     | `Exited 0 ->
-      Deferred.both (read_all pi.stdout) (read_all pi.stderr) >>= fun (stdout, stderr) ->
+      Deferred.both stdout stderr >>= fun (stdout, stderr) ->
       Deferred.return (Result.Ok (stdout, stderr))
     | err ->
-      Deferred.both (read_all pi.stdout) (read_all pi.stderr) >>= fun (stdout, stderr) ->
-      Deferred.return (Result.Error (err ,(stdout, stderr)))
+      Deferred.both stdout stderr >>= fun (stdout, stderr) ->
+      Deferred.return (Result.Error (err, (stdout, stderr)))
