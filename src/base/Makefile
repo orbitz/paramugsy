@@ -33,13 +33,13 @@ paramugsy: $(native_cmx)
 
 test: $(tests)
 	./async_cmd_test
-	./queue_server_test
+#	./queue_server_test
 
 async_cmd_test: async_cmd_test.cmx
 	ocamlfind ocamlopt -package core_extended,async -thread -linkpkg \
-	-o async_cmd_test async_cmd.cmx async_cmd_test.cmx
+	-o async_cmd_test global_state.cmx async_cmd.cmx async_cmd_test.cmx
 
-async_cmd_test.cmx: async_cmd_test.ml async_cmd.cmx
+async_cmd_test.cmx: async_cmd_test.ml async_cmd.cmx global_state.cmi global_state.cmx
 
 queue_server_test: queue_server_test.cmx queue_server.cmx queue_server.cmi \
 	queue_job.cmx pm_file.cmx pm_file.cmi
