@@ -25,6 +25,6 @@ int main(int argc, char **argv) {
   cout << "seq_idx_of_profile_idx(profile, 79551) = 3411545 = " << seq_idx_of_profile_idx(profile, 79551).value() << endl;
 
   cout << "seq_idx_of_profile_idx(profile, 681).is_none = true = " << seq_idx_of_profile_idx(profile, 681).is_none() << endl;
-  
+
   return 0;
 }

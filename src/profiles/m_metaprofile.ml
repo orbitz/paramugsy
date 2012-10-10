@@ -14,7 +14,7 @@ let reverse mp =
 
 let is_reverse mp = mp.reversed
 
-let profile_idx_of_profile_idx mp pi = 
+let profile_idx_of_profile_idx mp pi =
   if not mp.reversed then
     pi
   else

@@ -6,7 +6,7 @@ using namespace Para_mugsy;
 
 int main(int argc, char **argv) {
   std::ios_base::sync_with_stdio(false);
-  
+
   if(argc != 2) {
     std::cerr << "Must be called with name of maf file\n";
     return 1;
@@ -18,6 +18,6 @@ int main(int argc, char **argv) {
   Maf_alignment_table mat = alignment_table_of_ifstream(in_maf);
 
   maf_stitch_of_alignment_table(mat);
-  
+
   return 0;
 }

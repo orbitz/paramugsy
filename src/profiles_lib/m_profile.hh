@@ -22,7 +22,7 @@ namespace Para_mugsy {
    */
   typedef long M_seq_idx;
   typedef long M_profile_idx;
-  
+
   struct M_profile {
     M_profile(std::string const& p_major_name,
               std::string const& p_minor_name,
@@ -62,7 +62,7 @@ namespace Para_mugsy {
         p_length += i->length();
       }
     }
-    
+
     M_profile(M_profile const& p) :
       p_major_name(p.p_major_name),
       p_minor_name(p.p_minor_name),
@@ -86,7 +86,7 @@ namespace Para_mugsy {
 
       return *this;
     }
-    
+
     std::string p_major_name;
     std::string p_minor_name;
     std::string p_seq_name;
@@ -131,7 +131,7 @@ namespace Para_mugsy {
     out << "\n";
     return out;
   }
-  
+
 }
 
 #endif

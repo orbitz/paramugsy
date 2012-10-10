@@ -29,7 +29,7 @@ namespace Para_mugsy {
       std::vector<M_range<M_profile_idx> > p_gaps;
       std::string p_seq_text;
 
-      
+
       std::istringstream iss(line);
 
       if(iss >>
@@ -110,7 +110,7 @@ namespace Para_mugsy {
       throw Seq_idx_out_of_range();
     }
   }
-  
+
   M_option<M_seq_idx> seq_idx_of_profile_idx(M_profile const& p, M_profile_idx pi) {
     if(pi < p.p_length + 1) {
       long gaps = 0;
@@ -202,7 +202,7 @@ namespace Para_mugsy {
                                          M_range<M_seq_idx>(seq_idx_of_profile_idx(p, s).value(),
                                                             seq_idx_of_profile_idx(p, e).value()),
                                          gaps));
-                                         
+
   }
 
   M_profile subset_seq(M_profile const &p, M_seq_idx s, M_seq_idx e) {

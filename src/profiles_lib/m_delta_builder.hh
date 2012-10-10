@@ -5,7 +5,7 @@
 #include <m_metaprofile.hh>
 
 namespace Para_mugsy {
-  
+
   class M_delta_builder {
   public:
     M_delta_builder(std::pair<std::string, std::string> const& sequences,
@@ -28,7 +28,7 @@ namespace Para_mugsy {
       query_start = query_start_;
       query_pos = query_start_;
     }
-    
+
     void add_gap(strand_t strand, M_range<M_profile_idx> const& diff) {
       switch(strand) {
       case S_REF: {
@@ -38,7 +38,7 @@ namespace Para_mugsy {
             ++i) {
           ref_len += i->length();
         }
-        
+
         ref_gaps.push_back(M_range<M_profile_idx>(diff.get_start() + ref_len + 1,
                                                   diff.get_end() + ref_len + 1));
         ref_pos += diff.get_start();
@@ -52,7 +52,7 @@ namespace Para_mugsy {
             ++i) {
           query_len += i->length();
         }
-        
+
         query_gaps.push_back(M_range<M_profile_idx>(diff.get_start() + query_len + 1,
                                                     diff.get_end() + query_len + 1));
         ref_pos += diff.get_end() + 1;
@@ -68,7 +68,7 @@ namespace Para_mugsy {
     }
 
     M_option<M_delta_entry> to_delta() const;
-    
+
   private:
     std::pair<std::string, std::string> sequences;
     /* delta_type_t delta_type; -- Ignoring this for now, assuming Nucmer */
@@ -85,7 +85,7 @@ namespace Para_mugsy {
     std::vector<M_range<M_profile_idx> > ref_gaps;
     std::vector<M_range<M_profile_idx> > query_gaps;
   };
-  
+
 }
 
 #endif

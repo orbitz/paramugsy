@@ -62,7 +62,7 @@ let get_real_range overlap p p_sub =
 let get_start_size direction real_range p =
   match M_range.get_direction real_range with
     | `Forward ->
-      (M_range.get_start real_range - 1, 
+      (M_range.get_start real_range - 1,
        M_range.length real_range)
     | `Reverse ->
       (p.p_src_size - M_range.get_start real_range,
@@ -72,9 +72,9 @@ let rec untranslate_profiles overlap text = function
   | [] ->
     [< >]
   | p::ps -> begin
-    let p_sub_option = 
-      M_profile.subset_profile 
-	p 
+    let p_sub_option =
+      M_profile.subset_profile
+	p
 	((M_profile.profile_idx_of_int (M_range.get_start overlap)),
 	 (M_profile.profile_idx_of_int (M_range.get_end overlap)))
     in
@@ -88,7 +88,7 @@ let rec untranslate_profiles overlap text = function
 	  else
 	    (M_profile.reverse p_sub).p_seq_text
 	in
-	let maf_text = 
+	let maf_text =
 	  if M_range.get_direction p.p_range = direction then
 	    expand_text seq_text text
 	  else
@@ -112,7 +112,7 @@ let rec untranslate_profiles overlap text = function
 
 let untranslate_score profile_map score_line =
   let (name, start, size, d, src_size, text) = M_profile_stream.split_maf score_line in
-  let overlap = 
+  let overlap =
     M_range.of_maf
       ~start:start
       ~size:size
@@ -122,7 +122,7 @@ let untranslate_score profile_map score_line =
   let profiles = String_map.find name profile_map in
   untranslate_profiles overlap text profiles
 
-  
+
 
 let rec untranslate_maf profile_map sin =
   match Seq.next sin with
@@ -149,7 +149,7 @@ let rec untranslate_maf profile_map sin =
       raise (Failure ("Unknown line: " ^ l))
     | None ->
       [< >]
-      
+
 let read_profile_set dir =
   let profile_name = Fileutils.join [dir; "profiles"] in
   let sin = Lazy_io.read_file_lines ~close:true (open_in profile_name) in
@@ -163,10 +163,10 @@ let read_profile_set dir =
   read_profiles [] sin
 
 let untranslate ~profile_paths ~in_maf =
-  let profile_set  = 
-    List.fold_left 
-      ~f:(fun acc d -> (read_profile_set d) @ acc) 
-      ~init:[] 
+  let profile_set  =
+    List.fold_left
+      ~f:(fun acc d -> (read_profile_set d) @ acc)
+      ~init:[]
       profile_paths
   in
   (*
@@ -182,8 +182,8 @@ let parse_argv argv =
   let profile_paths_list = ref "" in
   let in_maf = ref "" in
   let out_maf = ref "" in
-  
-  let params = 
+
+  let params =
     Arg.align [ ("-profile_paths_list", Arg.Set_string profile_paths_list, "Path Path to file list of directories containing profiles")
 	      ; ("-in_maf", Arg.Set_string in_maf, "Path Input MAF file")
 	      ; ("-out_maf", Arg.Set_string out_maf, "Path Output MAF file")

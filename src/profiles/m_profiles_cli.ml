@@ -3,7 +3,7 @@ open Ort.Function
 
 let usage = ""
 
-let run_mode_argv argv = 
+let run_mode_argv argv =
   match argv.(0) with
     | "make" ->
       M_make.main argv
@@ -20,8 +20,8 @@ let run_mode_argv argv =
       exit 1
     end
 
-let main () = 
-  run_mode_argv 
+let main () =
+  run_mode_argv
     (Sys.argv |> Array.to_list |> List.tl_exn |> Array.of_list)
 
 

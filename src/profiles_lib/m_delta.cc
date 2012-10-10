@@ -10,7 +10,7 @@ using namespace Para_mugsy;
 
 namespace {
   typedef std::pair<strand_t, M_range<M_profile_idx> > gap_range;
-  
+
   M_option<gap_range> _read_gap_range(std::vector<long>::const_iterator& curr,
                                       std::vector<long>::const_iterator& end,
                                       long offset) {
@@ -39,7 +39,7 @@ namespace {
       return M_option<gap_range>();
     }
   }
-      
+
   /*
    * We want to turn something like:
    * 106 -6 1797 -9 -9 -1 7 1
@@ -66,7 +66,7 @@ namespace {
       }
     }
   }
-}  
+}
 
 namespace Para_mugsy {
   M_delta_stream::M_delta_stream(std::istream& in_stream) : in_stream_(in_stream) {
@@ -125,7 +125,7 @@ namespace Para_mugsy {
         i != query_gaps.end();
         ++i) {
       query_p_length += i->length();
-    }    
+    }
 
     /*
      * Flip gaps an adjust their position inside the profile
@@ -194,15 +194,15 @@ namespace Para_mugsy {
             throw Delta_stream_parse_error();
           }
         }
-          
+
         M_range<M_seq_idx> ref_range(ref_start, ref_end);
         M_range<M_seq_idx> query_range(query_start, query_end);
-        
+
         std::vector<M_range<M_profile_idx> > ref_gaps;
         std::vector<M_range<M_profile_idx> > query_gaps;
-        
+
         _split_gaps(gaps, ref_gaps, query_gaps);
-        
+
         return M_option<M_delta_entry>(M_delta_entry(header_names_,
                                                      header_lengths_,
                                                      ref_range,

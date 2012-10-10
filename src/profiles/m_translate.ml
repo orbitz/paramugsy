@@ -100,7 +100,7 @@ let string_of_strand = function
  * Here we will take the following information
  * ref_profile - The entire profile for the reference (left)
  * query_metaprofile - The entire profile for the query (right)
- * profile_gaps - A gap_list value of the gaps from the profiles just in the subsection 
+ * profile_gaps - A gap_list value of the gaps from the profiles just in the subsection
  * d_gaps - A gap_list value of the gaps from the delta alignment just in the subsection
  * ref_profile_pos - The current position in the ref profile
  * query_metaprofile_pos - The current position in the query profile

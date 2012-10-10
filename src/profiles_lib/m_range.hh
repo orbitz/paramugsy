@@ -7,7 +7,7 @@
 #include <m_direction.hh>
 
 namespace Para_mugsy {
-  
+
   template <typename T>
   class M_range {
   public:
@@ -26,13 +26,13 @@ namespace Para_mugsy {
       swap(start, rhs.start);
       swap(end, rhs.end);
     }
-      
-    
+
+
     T get_start() const { return start; }
     T get_end() const { return end; }
-    
+
     unsigned long length() const { return (start <= end ? end - start : start - end) + 1; }
-    
+
     M_direction get_direction() const { return start <= end ? D_FORWARD : D_REVERSE; }
 
     M_range<T> reverse() const { return M_range(end, start); }
@@ -45,16 +45,16 @@ namespace Para_mugsy {
         return *this;
       }
     }
-    
+
     bool contains(T const& v) const {
       M_range<T> r = make_forward(*this);
       return r.get_start() <= v && v <= r.get_end();
     }
-    
+
   private:
     T start;
     T end;
-    
+
   };
 
   template <typename T>
@@ -76,7 +76,7 @@ namespace Para_mugsy {
      */
     throw std::exception();
   }
-  
+
   template <typename T>
   M_option<M_range<T> > overlap(M_range<T> const& range_1, M_range<T> const& range_2) {
     M_range<T> r_1 = make_forward(range_1);
@@ -119,7 +119,7 @@ namespace Para_mugsy {
     out << "(" << range.get_start() << ", " << range.get_end() << ")";
     return out;
   }
-  
+
 }
 
 #endif

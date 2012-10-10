@@ -326,11 +326,11 @@ namespace {
 	 * In this case the gr gap does not start infront of the d gap
 	 * and the d gap does not finish before the gr gap.  We have some overlap
 	 * between the gr gap and the d gap.  `overlap_opposite_strand` checks to see if
-	 * our d gap is overlapping the gr gap on the opposite strand. If d_strand equals 
-	 * strand then we know that the d gap does not end before the gr gap and that 
-	 * we overlap the opposite strands gap. 
-	 * We need to know this because when we add the d gap, we increment the profile 
-	 * position on the strand opposite of the current gr gap by the total length of 
+	 * our d gap is overlapping the gr gap on the opposite strand. If d_strand equals
+	 * strand then we know that the d gap does not end before the gr gap and that
+	 * we overlap the opposite strands gap.
+	 * We need to know this because when we add the d gap, we increment the profile
+	 * position on the strand opposite of the current gr gap by the total length of
 	 * the d gap.  Consider the situation below:
 	 *
 	 *
@@ -417,7 +417,7 @@ namespace {
        *    dr |----XXXXXXXXXX-----|
        *    dq |-------------------|
        *
-       *     In this case, the portion in r between the two gaps is not actually a valid alignment because 
+       *     In this case, the portion in r between the two gaps is not actually a valid alignment because
        *     the other strand is nothing but gaps.  That means we want to throw this alignment away
        *     as well and continue on to the next one.
        *

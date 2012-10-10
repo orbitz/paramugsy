@@ -9,14 +9,14 @@ namespace Para_mugsy {
       gaps.push_back(one);
     }
   }
-  
+
 
   inline std::vector<long> deltas_of_gaps(M_delta_entry const& de) {
     std::vector<long> ret;
     std::vector<M_range<M_profile_idx> >::const_iterator ref_i = de.ref_gaps.begin();
     std::vector<M_range<M_profile_idx> >::const_iterator query_i = de.query_gaps.begin();
     long pos = 0;
-    
+
     while(1) {
       if(ref_i != de.ref_gaps.end() && query_i != de.query_gaps.end()) {
         if(ref_i->get_start() < query_i->get_start()) {
@@ -51,21 +51,21 @@ namespace Para_mugsy {
     }
     return ret;
   }
-  
+
   class M_delta_stream_writer {
   public:
     M_delta_stream_writer(std::ostream& out_stream) :
       out_stream(out_stream)
     {}
-    
+
     void write(M_delta_entry const& de) {
       if(de.header_names != header_names) {
         out_stream << '>' << de.header_names.first << ' ' << de.header_names.second << ' ';
         out_stream << de.header_lengths.first << ' ' << de.header_lengths.second << '\n';
-        
+
         header_names = de.header_names;
       }
-      
+
       std::vector<long> gaps = deltas_of_gaps(de);
       out_stream << de.ref_range.get_start() << ' ' << de.ref_range.get_end() << ' ';
       out_stream << de.query_range.get_start() << ' ' << de.query_range.get_end() << " 1 2 3\n";
@@ -75,7 +75,7 @@ namespace Para_mugsy {
         out_stream << *i << '\n';
       }
     }
-    
+
   private:
     std::ostream& out_stream;
     std::pair<std::string, std::string> header_names;

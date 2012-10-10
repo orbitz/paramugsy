@@ -5,7 +5,7 @@
 
 namespace {
   using namespace Para_mugsy;
-  
+
   typedef std::vector<Maf_analyzer_missing_entry> Missing_vector;
 
 
@@ -21,7 +21,7 @@ namespace {
   bool _adjacent_left_right(Missing_vector::iterator point, M_range<long> const &range) {
     return _adjacent_left(point, range) && _adjacent_right(point, range);
   }
-  
+
   Missing_vector::iterator _find_insertion_point(M_range<long> const &range,
                                                  Missing_vector &genome_missing) {
     for(Missing_vector::iterator i = genome_missing.begin();
@@ -34,7 +34,7 @@ namespace {
 
     return genome_missing.end();
   }
-  
+
   void _insert(Maf_entry_alignment const &alignment, Maf_genome_map &genome_map) {
     Missing_vector &genome_missing = genome_map[alignment.genome_name()];
     M_range<long> range(alignment.range().abs());

@@ -211,7 +211,7 @@ let reverse d =
 
 let print out_channel d =
   Printf.fprintf out_channel "sequences = (%s, %s)\n" (fst d.sequences) (snd d.sequences);
-  Printf.fprintf out_channel "header = ((%s, %d), (%s, %d))\n" 
+  Printf.fprintf out_channel "header = ((%s, %d), (%s, %d))\n"
     (fst (fst d.header))
     (snd (fst d.header))
     (fst (snd d.header))
