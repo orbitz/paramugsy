@@ -75,7 +75,7 @@ int main() {
   M_delta_stream_writer dsw(cout);
 
   vector<M_delta_entry> delta_entries;
-  
+
   while(M_option<M_delta_entry> de_o = ds.next()) {
     delta_entries.push_back(de_o.value());
   }
@@ -87,5 +87,5 @@ int main() {
       ++i) {
     dsw.write(*i);
   }
-  
+
 }

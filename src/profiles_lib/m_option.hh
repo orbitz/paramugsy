@@ -12,7 +12,7 @@
 
 namespace Para_mugsy {
   class Is_none_error : public std::exception {};
-  
+
   template <typename T>
   class M_option {
   public:
@@ -40,10 +40,10 @@ namespace Para_mugsy {
     ~M_option() {
       delete val;
     }
-    
+
   private:
     T const * const val;
   };
 }
-      
+
 #endif

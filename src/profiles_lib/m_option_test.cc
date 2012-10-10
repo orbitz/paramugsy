@@ -12,6 +12,6 @@ int main() {
   cout << "has_no_value: " << has_no_value.is_none() << endl;
   cout << "has_value.value: " << has_value.value() << endl;
   cout << "has_no_value.value: " << has_no_value.value() << endl;
-  
+
   return 0;
 }

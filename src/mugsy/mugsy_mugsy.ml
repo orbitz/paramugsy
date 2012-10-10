@@ -33,7 +33,7 @@ let parse_argv () =
   let minlength = ref 30 in
   let colinear = ref false in
   let skipunique = ref false in
-  
+
   let params =
     Arg.align [ ("-basename", Arg.Set_string basename, "String Basename to create files with")
 	      ; ("-out_dir", Arg.Set_string out_dir, "Path Directory to place output")

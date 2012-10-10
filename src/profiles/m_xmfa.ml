@@ -37,7 +37,7 @@ let xmfa_of_maf in_maf =
       | Some l when String.strip l = "" || l.[0] = '#' ->
 	convert_to_xmfa fin
       | Some l when String.is_prefix ~prefix:"a " l -> begin
-	let alignments = 
+	let alignments =
 	  fin
             |> Seq.take_while ~f:(fun l -> String.strip l <> "")
 	    |> Seq.filter ~f:(String.is_prefix ~prefix:"s ")
@@ -54,12 +54,12 @@ let xmfa_of_maf in_maf =
 	[< >]
   in
   convert_to_xmfa (Lazy_io.read_file_lines ~close:true (open_in in_maf))
-    
+
 let usage = ""
 
 let parse_argv argv =
   let in_maf = ref "" in
-  
+
   let params =
     Arg.align [ "-in_maf", Arg.Set_string in_maf, "Path Path to input maf file" ]
   in

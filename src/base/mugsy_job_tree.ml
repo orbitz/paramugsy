@@ -12,7 +12,7 @@ type 'a job_tree =
 type job_parameters = { max_seqs_per_nucmer : int (* Maximum number of seqs to calculate per nucmer run *)
 		      ; max_jobs_per_nucmer : int (* Maximum number of parallel jobs to make per nucmer run *)
 		      }
-      
+
 (* Fairly arbitrary values *)
 let default_job_parameters = { max_seqs_per_nucmer = 10
 			     ; max_jobs_per_nucmer = 10

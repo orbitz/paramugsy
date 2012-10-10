@@ -13,7 +13,7 @@ namespace Para_mugsy {
   class Delta_stream_parse_error : public std::exception {};
 
   enum strand_t { S_REF, S_QUERY };
-  
+
   struct M_delta_entry {
     M_delta_entry(std::pair<std::string, std::string> const &header_names,
                   std::pair<long, long> const &header_lengths,
@@ -48,9 +48,9 @@ namespace Para_mugsy {
 
       return *this;
     }
-    
+
     M_delta_entry reverse() const;
-    
+
     std::pair<std::string, std::string> header_names;
     std::pair<long, long> header_lengths;
 
@@ -77,7 +77,7 @@ namespace Para_mugsy {
     std::pair<std::string, std::string> header_names_;
     std::pair<long, long> header_lengths_;
   };
-  
+
 }
 
 #endif

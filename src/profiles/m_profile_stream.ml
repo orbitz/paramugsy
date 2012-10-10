@@ -69,6 +69,6 @@ let rec profile_stream_of_maf_stream ?(start_count = 0) ~basename sin =
 
 
 let profile_stream_of_maf ~basename fname =
-  profile_stream_of_maf_stream 
-    ~basename:basename 
+  profile_stream_of_maf_stream
+    ~basename:basename
     (Lazy_io.read_file_lines ~close:true (open_in fname))

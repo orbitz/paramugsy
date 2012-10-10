@@ -64,7 +64,7 @@ let profile_of_maf_entry ~name ~seq_name ~range ~src_size ~text =
 (*
  * Reads a profile from a file.  if lite is given than the sequence text is not
  * read.
- * 
+ *
  * NOTE: There is a known bug that does not close the input file on failure
  *)
 let read_profile_file ?(lite = false) sin =
@@ -79,14 +79,14 @@ let read_profile_file ?(lite = false) sin =
     | Some l -> begin
       match String.split_on_chars ~on:[' '] l with
 	| [major_name; minor_name; seq_name; seq_start; seq_end; length; src_size] ->
-	  let until_zero = function 
-	    | "0" -> false 
+	  let until_zero = function
+	    | "0" -> false
 	    | _ -> true
 	  in
-	  let sequence_gaps = 
-	    sin |> 
-		Seq.take_while ~f:until_zero |> 
-		    Seq.map ~f:range_of_string |> 
+	  let sequence_gaps =
+	    sin |>
+		Seq.take_while ~f:until_zero |>
+		    Seq.map ~f:range_of_string |>
 			Seq.to_list
 	  in
 	  (* read the 0 *)
@@ -118,7 +118,7 @@ let read_profile_file ?(lite = false) sin =
     end
     | None ->
       None
-	    
+
 
 let write_profile_file profile fout =
   let (major_name, minor_name) = profile.p_name in
@@ -126,7 +126,7 @@ let write_profile_file profile fout =
     "%s %s %s %d %d %d %d\n"
     major_name
     minor_name
-    profile.p_seq_name 
+    profile.p_seq_name
     (M_range.get_start profile.p_range)
     (M_range.get_end profile.p_range)
     profile.p_length
@@ -149,7 +149,7 @@ let profile_idx_of_seq_idx p si =
   let rec profile_index gaps = function
     | gr::grs when M_range.get_start gr <= (offset + gaps) ->
       profile_index (gaps + M_range.length gr) grs
-    | _::_ | [] -> 
+    | _::_ | [] ->
       gaps + offset
   in
   if M_range.contains p.p_range si then
@@ -157,7 +157,7 @@ let profile_idx_of_seq_idx p si =
   else
     raise (Seq_idx_out_of_range (si, p.p_range))
 
-let seq_idx_of_profile_idx p pi = 
+let seq_idx_of_profile_idx p pi =
   let rec seq_index gaps = function
     | gr::grs when M_range.get_end gr < pi ->
       seq_index (gaps + M_range.length gr) grs
@@ -172,7 +172,7 @@ let seq_idx_of_profile_idx p pi =
 	  Some (M_range.get_start p.p_range - offset)
     end
   in
-  (* 
+  (*
    * Because a profile index is 1-index we want to compare it to the length + 1
    * because lengths are start at 0
    *)
@@ -210,7 +210,7 @@ let subset_profile p (s, e) =
 	[gr] when M_range.get_start gr = s && M_range.get_end gr = e ->
 	  None
       | _ -> begin
-	let seq_s = 
+	let seq_s =
 	  match List.hd gaps with
 	    | Some gr when M_range.get_start gr = s ->
 	      seq_idx_of_profile_idx p (M_range.get_end gr + 1)
@@ -225,7 +225,7 @@ let subset_profile p (s, e) =
 	      seq_idx_of_profile_idx p e
 	in
 	(let open Option_monad in
-	     seq_s >>= (fun s_s -> 
+	     seq_s >>= (fun s_s ->
 	       seq_e >>= (fun s_e ->
 		 return
 		   { p with
@@ -252,9 +252,9 @@ let reverse p =
     |> List.map ~f:(M_range.lift ~f:(fun (s, e) ->
       (p.p_length - e + 1, p.p_length - s + 1)))
   in
-  let reverse_text = 
+  let reverse_text =
     let text = String.copy p.p_seq_text in
-    for i = 0 to String.length text - 1 do 
+    for i = 0 to String.length text - 1 do
       String.set text i (String.nget p.p_seq_text (-(i + 1)))
     done;
     text
@@ -267,7 +267,7 @@ let reverse p =
 
 let diff_profile_idx pi1 pi2 = pi1 - pi2
 
-let diff_seq_idx si1 si2 = si1 - si2      
+let diff_seq_idx si1 si2 = si1 - si2
 
 let print out_channel p =
   Printf.fprintf
@@ -279,7 +279,7 @@ let print out_channel p =
     out_channel
     "p_seq_name = %s\n"
     p.p_seq_name;
-  Printf.fprintf 
+  Printf.fprintf
     out_channel
     "p_range = (%d, %d)\n"
     (M_range.get_start p.p_range)
@@ -291,11 +291,11 @@ let print out_channel p =
   Printf.fprintf
     out_channel
     "p_gaps =\n[ ";
-  List.iter 
-    ~f:(fun g -> 
-      Printf.fprintf 
-	out_channel 
-	"(%d, %d) " 
+  List.iter
+    ~f:(fun g ->
+      Printf.fprintf
+	out_channel
+	"(%d, %d) "
 	(M_range.get_start g)
 	(M_range.get_end g))
     p.p_gaps;

@@ -119,11 +119,11 @@ let print out_channel db =
   Printf.fprintf
     out_channel
     "= ref_gaps =\n[ ";
-  List.iter 
-    ~f:(fun g -> 
-      Printf.fprintf 
-	out_channel 
-	"(%d, %d) " 
+  List.iter
+    ~f:(fun g ->
+      Printf.fprintf
+	out_channel
+	"(%d, %d) "
 	(M_range.get_start g)
 	(M_range.get_end g))
     (List.rev db.ref_gaps);
@@ -133,11 +133,11 @@ let print out_channel db =
   Printf.fprintf
     out_channel
     "= query_gaps =\n[ ";
-  List.iter 
-    ~f:(fun g -> 
-      Printf.fprintf 
-	out_channel 
-	"(%d, %d) " 
+  List.iter
+    ~f:(fun g ->
+      Printf.fprintf
+	out_channel
+	"(%d, %d) "
 	(M_range.get_start g)
 	(M_range.get_end g))
     (List.rev db.query_gaps);

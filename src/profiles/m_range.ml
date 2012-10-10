@@ -18,7 +18,7 @@ let swap_if_needed (s, e) = if s < e then (s, e) else (e, s)
  * rather than
  * s1 <--------> e1
  *        s2 <------> e2
- * 
+ *
  *)
 let overlap r1 r2 =
   let (s1, e1) = swap_if_needed r1 in
@@ -45,7 +45,7 @@ let contains r v =
   let (s, e) = swap_if_needed r in
   s <= v && v <= e
 
-let length (s, e) = abs (s - e) + 1 
+let length (s, e) = abs (s - e) + 1
 
 let lift ~f r = f r
 
@@ -57,7 +57,7 @@ let to_tuple r = r
  * MAF is 0 indexed and has directions.  This takes that information
  * and converts it to a range
  *)
-let of_maf ~start ~size ~src_size ~direction = 
+let of_maf ~start ~size ~src_size ~direction =
   match direction with
     | `Forward ->
       (start + 1, start + size)

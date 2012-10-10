@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   std::ifstream input_stream(argv[1]);
   Maf_read_stream maf_read_stream(input_stream);
   Maf_analyzer_missing maf_missing;
-  
+
   while(M_option<Maf_entry> o_entry = maf_read_stream.next()) {
     maf_missing.add(o_entry.value());
   }
@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
   // Found regions
   // Maf_missing_report const &missing_report = maf_missing.genome_map();
-  
+
   for(Maf_missing_report::const_iterator i = missing_report.begin();
       i != missing_report.end();
       ++i) {

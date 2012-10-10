@@ -18,7 +18,7 @@ std::vector<long> _deltas_of_gaps(M_delta_entry const& de) {
   std::vector<M_range<M_profile_idx> >::const_iterator ref_i = de.ref_gaps.begin();
   std::vector<M_range<M_profile_idx> >::const_iterator query_i = de.query_gaps.begin();
   long pos = 0;
-  
+
   while(1) {
     if(ref_i != de.ref_gaps.end() && query_i != de.query_gaps.end()) {
       if(ref_i->get_start() < query_i->get_start()) {
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     cout << de.value().header_names.first << " " << de.value().header_names.second << endl;
 
     std::cout << "ref_range = (" << de.value().ref_range.get_start() << ", " << de.value().ref_range.get_end() << ")\n";
-    
+
     std::vector<M_range<M_profile_idx> > const& ref_gaps = de.value().ref_gaps;
     std::cout << "ref_gaps\n";
     for(std::vector<M_range<M_profile_idx> >::const_iterator i = ref_gaps.begin();
@@ -73,24 +73,24 @@ int main(int argc, char **argv) {
     }
 
     std::cout << "query_range = (" << de.value().query_range.get_start() << ", " << de.value().query_range.get_end() << ")\n";
-    std::vector<M_range<M_profile_idx> > const& query_gaps = de.value().query_gaps;    
+    std::vector<M_range<M_profile_idx> > const& query_gaps = de.value().query_gaps;
     std::cout << "query_gaps\n";
     for(std::vector<M_range<M_profile_idx> >::const_iterator i = query_gaps.begin();
         i != query_gaps.end();
         ++i) {
       cout << "(" << i->get_start() << ", " << i->get_end() << ")" << endl;
     }
-    
+
     std::vector<long> deltas = _deltas_of_gaps(de.value());
     for(std::vector<long>::iterator i = deltas.begin();
         i != deltas.end();
         ++i) {
       std::cout << *i << "\n";
     }
-    
+
   }
 
   return 0;
 }
 
-  
+

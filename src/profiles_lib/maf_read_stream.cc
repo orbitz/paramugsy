@@ -25,7 +25,7 @@ namespace Para_mugsy {
 
         if(iss >> score >> label) {
           Maf_entry maf_entry(score, label);
-          
+
           while(std::getline(istream_, line) && 's' == line[0]) {
             maf_entry.add_alignment(Maf_entry_alignment(line));
           }
@@ -43,5 +43,5 @@ namespace Para_mugsy {
       return M_option<Maf_entry>();
     }
   }
-           
+
 }

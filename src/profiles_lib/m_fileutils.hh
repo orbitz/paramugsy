@@ -6,7 +6,7 @@
 
 namespace Para_mugsy {
   class Read_dir_error : public std::exception {};
-  
+
   std::vector<std::string> list_dir(std::string const& dir);
 }
 

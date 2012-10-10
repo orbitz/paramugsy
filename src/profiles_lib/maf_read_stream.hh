@@ -14,7 +14,7 @@
 
 namespace Para_mugsy {
   class Maf_parse_error : std::exception {};
-  
+
   class Maf_entry_alignment {
   public:
     Maf_entry_alignment(std::string line) :
@@ -41,7 +41,7 @@ namespace Para_mugsy {
       else {
         throw Maf_parse_error();
       }
-        
+
     }
 
     Maf_entry_alignment(Maf_entry_alignment const &mea) :
@@ -61,7 +61,7 @@ namespace Para_mugsy {
 
     void swap(Maf_entry_alignment &rhs) {
       using std::swap;
-      
+
       swap(genome_name_, rhs.genome_name_);
       swap(start_, rhs.start_);
       swap(size_, rhs.size_);
@@ -93,7 +93,7 @@ namespace Para_mugsy {
     M_range<long> const &range() const {
       return range_;
     }
-    
+
   private:
     std::string genome_name_;
     long start_;
@@ -102,7 +102,7 @@ namespace Para_mugsy {
     std::string text_;
     M_range<long> range_;
   };
-  
+
   class Maf_entry {
   public:
     Maf_entry(std::string const &score, std::string const &label) :
@@ -127,7 +127,7 @@ namespace Para_mugsy {
       swap(copy);
       return *this;
     }
-    
+
     std::string score() const {
       return score_;
     }
@@ -151,23 +151,23 @@ namespace Para_mugsy {
     std::vector<Maf_entry_alignment>::const_iterator alignments_begin() const {
       return alignments_.begin();
     }
-    
+
     std::vector<Maf_entry_alignment>::const_iterator alignments_end() const {
       return alignments_.end();
     }
-    
+
   private:
     std::string score_;
     std::string label_;
     std::vector<Maf_entry_alignment> alignments_;
   };
-  
+
   class Maf_read_stream {
   public:
     Maf_read_stream(std::istream &istream) : istream_(istream) {}
 
     M_option<Maf_entry> next();
-    
+
   private:
     std::istream &istream_;
   };
@@ -175,11 +175,11 @@ namespace Para_mugsy {
   inline void swap(Maf_entry_alignment &left, Maf_entry_alignment &right) {
     left.swap(right);
   }
-  
+
   inline void swap(Maf_entry &left, Maf_entry &right) {
     left.swap(right);
   }
-  
+
 }
 
 #endif
