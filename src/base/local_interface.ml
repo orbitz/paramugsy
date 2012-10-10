@@ -25,6 +25,14 @@ let rec run_job retries t job =
 	   job.Queue_job.payload);
       after (sec 5.) >>> fun () -> run_job (retries - 1) t job
     end
+    | Result.Error (`Exited n, _) when retries > 0 -> begin
+      Global_state.logger
+	(Printf.sprintf "%s Failed with %d, retrying"
+	   job.Queue_job.payload
+	   n);
+      let retries = if retries <= 10 then retries else 10 in
+      after (sec 5.) >>> fun () -> run_job (retries - 1) t job
+    end
     | Result.Error (err, (stdout, stderr)) -> begin
       let () =
 	match err with
