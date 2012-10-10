@@ -27,6 +27,6 @@ module Task : sig
 end
 
 module Make : functor (Sts : SCRIPT_TASK_SERVER) -> sig
-  val run : t -> int Deferred.t
+  val run : t -> unit Deferred.t
 end
 

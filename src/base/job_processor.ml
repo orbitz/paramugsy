@@ -309,7 +309,8 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     match res with
       | Result.Ok maf -> begin
 	t.logger "Succeeded";
-	t.logger (Printf.sprintf "MAF - %s" maf);
+	Copy_file.copy_file maf t.out_maf >>> fun _ ->
+	t.logger t.out_maf;
 	never_returns (Shutdown.shutdown_and_raise 0)
       end
       | Result.Error _ -> begin
