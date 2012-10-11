@@ -104,7 +104,7 @@ let rec untranslate_profiles overlap text = function
 	;  untranslate_profiles overlap text ps
 	>]
       | None -> begin
-	Printf.eprintf "All gaps found\n";
+	(* Printf.eprintf "All gaps found\n"; *)
 	untranslate_profiles overlap text ps
       end
   end
