@@ -55,7 +55,11 @@ let get_output ~text ~prog ~args =
   wait pi >>= function
     | `Exited 0 ->
       Deferred.both stdout stderr >>= fun (stdout, stderr) ->
+      Reader.close pi.stdout      >>= fun () ->
+      Reader.close pi.stderr      >>= fun () ->
       Deferred.return (Result.Ok (stdout, stderr))
     | err ->
       Deferred.both stdout stderr >>= fun (stdout, stderr) ->
+      Reader.close pi.stdout      >>= fun () ->
+      Reader.close pi.stderr      >>= fun () ->
       Deferred.return (Result.Error (err, (stdout, stderr)))
