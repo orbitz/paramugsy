@@ -20,13 +20,13 @@ let rec run_job retries t job =
        * could be a legitimate issue and we want to give up in
        * that case
        *)
-      Global_state.logger
+      Logger.log
 	(Printf.sprintf "%s Failed with 127, retrying"
 	   job.Queue_job.payload);
       after (sec 5.) >>> fun () -> run_job (retries - 1) t job
     end
     | Result.Error (`Exited n, _) when retries > 0 -> begin
-      Global_state.logger
+      Logger.log
 	(Printf.sprintf "%s Failed with %d, retrying"
 	   job.Queue_job.payload
 	   n);
@@ -36,12 +36,12 @@ let rec run_job retries t job =
     | Result.Error (err, (stdout, stderr)) -> begin
       let () =
 	match err with
-	  | `Exited i -> Global_state.logger (Printf.sprintf "Exited: %d" i)
-	  | `Signal i -> Global_state.logger (Printf.sprintf "Signal: %d" i)
-	  | `Unknown  -> Global_state.logger "Unknown"
+	  | `Exited i -> Logger.log (Printf.sprintf "Exited: %d" i)
+	  | `Signal i -> Logger.log (Printf.sprintf "Signal: %d" i)
+	  | `Unknown  -> Logger.log "Unknown"
       in
-      Global_state.logger (Printf.sprintf "Failed: %s" job.Queue_job.payload);
-      Global_state.logger (Printf.sprintf "Stdout: %s\nStderr: %s" stdout stderr);
+      Logger.log (Printf.sprintf "Failed: %s" job.Queue_job.payload);
+      Logger.log (Printf.sprintf "Stdout: %s\nStderr: %s" stdout stderr);
       Ivar.fill t Job_status.Failed
     end
 

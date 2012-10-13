@@ -97,12 +97,6 @@ let sge_cmd_flags =
   ; sge_run_size_f
   ]
 
-let logger () =
-  let module A = Async.Std in
-  let w = A.Writer.create (A.Fd.stdout ())
-  in
-  fun s -> A.Writer.write w (s ^ "\n")
-
 let local_flags () =
   if !seq_list = "" then
     failwith "-seq-list must be set";
@@ -146,7 +140,7 @@ let local_flags () =
   ;   seqs_per_mugsy = !seqs_per_mugsy
   ;   nucmer_chunk   = !nucmer_chunk_size
   ;   out_maf        = !out_maf
-  ;   logger         = logger ()
+  ;   log            = Logger.log
   }
 
 
@@ -196,7 +190,7 @@ let sge_flags () =
   ;   seqs_per_mugsy = !seqs_per_mugsy
   ;   nucmer_chunk   = !nucmer_chunk_size
   ;   out_maf        = !out_maf
-  ;   logger         = logger ()
+  ;   log            = Logger.log
   }
 
 let rec print_lines fout sin =
