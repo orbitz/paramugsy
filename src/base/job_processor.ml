@@ -36,6 +36,20 @@ let chunk n l =
 module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
   module Qts = Queued_task_server.Make(Sts)
 
+  (*
+   * We are using a blocking call here because Writer.with_file
+   * has a context switch between opening the file and calling
+   * the handler, which means we can exec a process in that time
+   * which has the file handle open and then we cannot execute
+   * the script we just ran until that exec'd process finishes.
+   * Our two options are to atomically open a file and set the fd
+   * to close_on_exec, or to simply do the entire write in one
+   * go.  Since we have bigger problems if our reads and writes are
+   * blocking, this is good enough.
+   *)
+  let with_file n ~f =
+    Deferred.return (Out_channel.with_file n ~f)
+
   let run_task tmp_dir qts priority task =
     Pm_file.read_file task.Task.template_file >>= fun template ->
     let cmds =
@@ -47,9 +61,9 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     let dir    = Fileutils.join [tmp_dir; "q_job"] in
     let script = Fileutils.join [dir; Printf.sprintf "q%s.sh" (Global_state.make_count ())] in
     Shell.mkdir ~p:() dir;
-    Writer.with_file
+    with_file
       script
-      ~f:(fun w -> Deferred.return (Writer.write w cmds)) >>= fun () ->
+      ~f:(fun o -> Out_channel.output_string o cmds) >>= fun () ->
     ignore (Unix.chmod ~perm:0o555 script);
     Qts.submit
       ~p:priority
