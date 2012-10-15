@@ -72,10 +72,10 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       script
       qts
 
-  let background d =
-    let ret = Ivar.create () in
-    whenever (d >>| fun r -> Ivar.fill ret r);
-    ret
+  let log_done log msg d =
+    d >>= fun r ->
+    log msg;
+    Deferred.return r
 
   let collect_nucmer tasks results =
     let rec cn accum tasks results =
@@ -260,18 +260,24 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       process_fake_mugsy t qts priority genome
   and process_mugsy_profile t qts priority (left, right) =
     let node_name = Global_state.make_count () in
+    let log       = log_msg t.log priority node_name in
     let job_tree  = Pm_job.Mugsy_profile (left, right) in
-    let left_ret  = background (process_tree t qts (priority + 1) left) in
-    let right_ret = background (process_tree t qts (priority + 1) right) in
+    let left_ret  = log_done
+                      log
+		      "Left subtree complete"
+		      (process_tree t qts (priority + 1) left)
+    in
+    let right_ret = log_done
+                      log
+		      "Right subtree complete"
+		      (process_tree t qts (priority + 1) right)
+    in
     log_msg t.log priority node_name "Start Nucmer";
     run_nucmers t qts priority job_tree >>= function
       | Result.Ok nucmers -> begin
 	log_msg t.log priority node_name "Nucmer Complete";
 	let nucmer_deltas = collect_nucmer_deltas nucmers in
-	Ivar.read left_ret  >>= fun left_val ->
-	log_msg t.log priority node_name "Left subtree complete";
-	Ivar.read right_ret >>= fun right_val ->
-	log_msg t.log priority node_name "Right subtree complete";
+	Deferred.both left_ret right_ret >>= fun (left_val, right_val) ->
 	match (left_val, right_val) with
 	  | (Result.Ok left_maf, Result.Ok right_maf) -> begin
 	    log_msg t.log priority node_name "Start Mugsy profiles";
