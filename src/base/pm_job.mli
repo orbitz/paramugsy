@@ -5,7 +5,7 @@ open Ort
 
 module Genome_name : sig
   type t
-  include Identifier with type t := t
+  include Identifiable with type t := t
 end
 
 type t =

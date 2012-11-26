@@ -41,9 +41,9 @@ let run ~prog ~args =
   in
   Deferred.return
     { pid = pid
-    ; stdin  = Writer.create (Fd.create K.File m_stdin ~name:"stdin")
-    ; stdout = Reader.create (Fd.create K.File m_stdout ~name:"stdout")
-    ; stderr = Reader.create (Fd.create K.File m_stderr ~name:"stderr")
+    ; stdin  = Writer.create (Fd.create K.File m_stdin (Info.of_string "stdin"))
+    ; stdout = Reader.create (Fd.create K.File m_stdout (Info.of_string "stdout"))
+    ; stderr = Reader.create (Fd.create K.File m_stderr (Info.of_string "stderr"))
     }
 
 let get_output ~text ~prog ~args =

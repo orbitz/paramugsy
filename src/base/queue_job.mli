@@ -2,12 +2,12 @@ open Core.Std
 
 module Queue : sig
   type t
-  include Identifier with type t := t
+  include Identifiable with type t := t
 end
 
 module Name : sig
   type t
-  include Identifier with type t := t
+  include Identifiable with type t := t
 end
 
 module Job_status : sig

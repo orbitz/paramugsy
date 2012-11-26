@@ -1,7 +1,7 @@
 open Core.Std
 
-module Queue : Identifier = String
-module Name  : Identifier = String
+module Queue : Identifiable = String
+module Name  : Identifiable = String
 
 module Job_status = struct
   type job_running = Pending | Running
