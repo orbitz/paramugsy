@@ -7,17 +7,17 @@
 *.cmxa
 
 # Deps
-src/seq
-src/ocaml-seq
-src/ocaml_bio
-src/ocaml-bio
+lib/seq
+lib/ocaml-seq
+lib/ocaml_bio
+lib/ocaml-bio
 
 # Binaries
-src/base/paramugsy
-src/m_translate/m_translate
-src/mugsy/mugsy_mugsy
-src/nucmer/mugsy_nucmer
-src/profiles/mugsy_profiles
+lib/base/paramugsy
+lib/m_translate/m_translate
+lib/mugsy/mugsy_mugsy
+lib/nucmer/mugsy_nucmer
+lib/profiles/mugsy_profiles
 
 # Intermediates
 ._d/
