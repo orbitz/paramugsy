@@ -20,7 +20,7 @@ open Async.Std
 
 open Ort
 
-module Genome_name : Identifier = String
+module Genome_name : Identifiable = String
 
 module Genome_map = Genome_name.Map
 

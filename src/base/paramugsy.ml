@@ -2,7 +2,7 @@ open Core.Std
 
 open Ort
 
-module Command = Core_extended.Command
+module Command = Core_extended.Deprecated_command
 
 module Local_processor =
   Job_processor.Make(Queue_server.Make(Local_interface))
@@ -207,9 +207,9 @@ let rewrite_sequences sequences tmp_dir =
   let rewrite_sequence seq =
     let species_name = M_rewrite_fasta.species_name seq in
     let fout_name    = Fileutils.join [tmp_dir; species_name] in
-    let fout         = open_out fout_name in
+    let fout         = Out_channel.create fout_name in
     print_lines fout (M_rewrite_fasta.rewrite_headers seq);
-    close_out fout;
+    Out_channel.close fout;
     fout_name
   in
   Core_extended.Shell.mkdir ~p:() tmp_dir;

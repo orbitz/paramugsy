@@ -1,4 +1,4 @@
-OCAMLPATH:=$(PWD)/src:$(OCAMLPATH)
+export OCAMLPATH:=$(PWD)/src:$(OCAMLPATH)
 
 .PHONY: all test clean \
 	setup core-install get-deps get-ocaml-bio get-ocaml-seq \

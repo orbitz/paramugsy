@@ -55,7 +55,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
   let handle_msg t = function
     | Run (p, n, q, script, ret) -> begin
       if t.running < t.run_size then begin
-	whenever (run_job t.mq n q script t.sts ret);
+	ignore (run_job t.mq n q script t.sts ret);
 	Deferred.return {t with running = t.running + 1}
       end
       else begin
@@ -66,7 +66,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     | Done -> begin
       match Heap.pop t.queue with
 	| Some (_, n ,q, script, ret) -> begin
-	  whenever (run_job t.mq n q script t.sts ret);
+	  ignore (run_job t.mq n q script t.sts ret);
 	  Deferred.return t
 	end
 	| None ->
@@ -95,7 +95,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 	    ; mq       = Tail.create ()
 	    }
     in
-    whenever (loop t);
+    ignore (loop t);
     t
 
   let stop t =
