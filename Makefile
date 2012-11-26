@@ -1,29 +1,29 @@
-export OCAMLPATH:=$(PWD)/src:$(OCAMLPATH)
+export OCAMLPATH:=$(PWD)/lib:$(OCAMLPATH)
 
 .PHONY: all test clean \
 	setup core-install get-deps get-ocaml-bio get-ocaml-seq \
 	clean-deps
 
 all:
-	$(MAKE) -C src
+	$(MAKE) -C lib
 
 test:
-	$(MAKE) -C src test
+	$(MAKE) -C lib test
 
 setup: get-deps
 
 get-deps: get-ocaml-bio get-ocaml-seq
 
 get-ocaml-bio:
-	cd src && git clone https://github.com/orbitz/ocaml-bio.git
+	cd lib && git clone https://github.com/orbitz/ocaml-bio.git
 
 get-ocaml-seq:
-	cd src && git clone https://github.com/orbitz/ocaml-seq.git
+	cd lib && git clone https://github.com/orbitz/ocaml-seq.git
 
 clean-deps:
-	rm -rf src/ocaml-bio
-	rm -rf src/ocaml-seq
+	rm -rf lib/ocaml-bio
+	rm -rf lib/ocaml-seq
 
 clean:
-	$(MAKE) -C src clean
+	$(MAKE) -C lib clean
 
