@@ -1,0 +1,6 @@
+name="maf"
+version="0.0.1"
+description="Library for manipulating MAF files"
+requires="core"
+archive(byte)="maf.cma"
+archive(native)="maf.cmxa"
