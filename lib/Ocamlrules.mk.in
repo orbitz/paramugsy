@@ -16,3 +16,7 @@
 
 .d: $(sources) $(sources_mli)
 	ocamlfind ocamldep $(OCAMLC_OPTS) $(CAMLP4) $(sources) $(sources_mli) > .d
+
+
+# This won't exist until it is generated, so .d needs to run first
+-include .d

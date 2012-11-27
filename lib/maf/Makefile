@@ -41,6 +41,3 @@ clean:
 
 # Dependencies
 include ../Ocamlrules.mk.in
-
-# This won't exist until it is generated, so .deps needs to run first
--include .d
