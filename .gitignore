@@ -22,4 +22,4 @@ lib/profiles/mugsy_profiles
 # Intermediates
 ._d/
 ._ncdi/
-.deps
+.d
