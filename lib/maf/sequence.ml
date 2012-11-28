@@ -13,11 +13,12 @@ type t = { name  : string
 	 ; size  : Int64.t
 	 ; d     : Direction.t
 	 ; total : Int64.t
+	 ; seq   : string
 	 }
 
 
-let make ~name ~start ~size ~d ~total =
-  { name; start; size; d; total }
+let make ~name ~start ~size ~d ~total ~seq =
+  { name; start; size; d; total; seq }
 
 let reverse _ = failwith "Not implemented yet"
 
@@ -30,3 +31,5 @@ let size t = t.size
 let direction t = t.d
 
 let total t = t.total
+
+let sequence t = t.seq

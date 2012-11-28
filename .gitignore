@@ -1,6 +1,7 @@
 *~
 *.o
 *.a
+*.cma
 *.cmo
 *.cmi
 *.cmx
@@ -22,4 +23,5 @@ lib/profiles/mugsy_profiles
 # Intermediates
 ._d/
 ._ncdi/
+._bcdi/
 .d

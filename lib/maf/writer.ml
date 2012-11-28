@@ -4,7 +4,7 @@ type t = Out_channel.t
 
 let create t = t
 
-let write aln t =
+let write t aln =
   let score =
     Printf.sprintf
       "a %s\n"
@@ -21,6 +21,7 @@ let write aln t =
 	  ; Int64.to_string (Sequence.size s)
 	  ; Sequence.Direction.to_string (Sequence.direction s)
 	  ; Int64.to_string (Sequence.total s)
+	  ; Sequence.sequence s
 	  ])
       (Alignment.sequences aln)
   in

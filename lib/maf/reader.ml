@@ -9,7 +9,7 @@ let rec read_anchor t =
     | Some l when String.is_prefix ~prefix:"a score=" (String.strip l) ->
       (* Drop the "a " *)
       Some (String.drop_prefix l 2)
-    | Some _ -> read_anchor t
+    | Some l -> read_anchor t
     | None -> None
 
 let seq_of_string l =
@@ -28,13 +28,14 @@ let seq_of_string l =
   Option.try_with
     (fun () ->
       match s with
-	| ["s"; name; start; size; d; total] when d = "+" || d = "-" ->
+	| ["s"; name; start; size; d; total; seq] when d = "+" || d = "-" ->
 	  Sequence.make
 	    ~name
 	    ~start:(Int64.of_string start)
 	    ~size:(Int64.of_string size)
 	    ~d:(d_of_string d)
 	    ~total:(Int64.of_string total)
+	    ~seq
 	| _ ->
 	  failwith "Invalid line")
 
@@ -44,9 +45,10 @@ let read_alignment t =
     match In_channel.input_line t with
       | Some l when String.strip l = "" ->
 	Some (List.rev acc)
-      | Some l when l.[0] <> '#' ->
+      | Some l when l.[0] <> '#' -> begin
 	seq_of_string l >>= fun seq ->
 	read_aln (seq::acc)
+      end
       | Some _ -> None
       | None when acc = [] -> None
       | None -> Some (List.rev acc)

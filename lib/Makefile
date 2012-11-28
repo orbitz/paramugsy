@@ -1,4 +1,4 @@
-SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate maf
+SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate maf mafclean
 
 EXTERNAL_APPS = ocaml-bio ocaml-seq
 
@@ -44,8 +44,11 @@ m_translate: profiles_lib
 
 maf: maf/.d
 
+mafclean: mafclean/.d maf
+
 $(SUBDIRS):
 	$(MAKE) -C $@ native-code
+	$(MAKE) -C $@ byte-code
 
 $(subdirs_test):
 	$(MAKE) -C $(patsubst %_test,%,$@) test
@@ -80,3 +83,6 @@ base/.d:
 
 maf/.d:
 	$(MAKE) -C maf .d
+
+mafclean/.d:
+	$(MAKE) -C mafclean .d

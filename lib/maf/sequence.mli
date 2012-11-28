@@ -14,6 +14,7 @@ val make :
   size:Int64.t ->
   d:Direction.t ->
   total:Int64.t ->
+  seq:string ->
   t
 
 val reverse   : t -> t
@@ -23,3 +24,4 @@ val start     : t -> Int64.t
 val size      : t -> Int64.t
 val direction : t -> Direction.t
 val total     : t -> Int64.t
+val sequence  : t -> string
