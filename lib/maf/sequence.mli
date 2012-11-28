@@ -4,6 +4,8 @@ type t
 
 module Direction : sig
   type t = Forward | Reverse
+
+  val to_string : t -> string
 end
 
 val make :

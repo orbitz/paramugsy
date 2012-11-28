@@ -1,17 +1,28 @@
 open Core.Std
 
-type t = Sequence.t list
+module Score = struct
+  type t = string
+end
 
-let make t = t
+type t = { score : Score.t
+	 ; seqs  : Sequence.t list
+	 }
 
-let sequences t = t
+let make score seqs = {score; seqs}
 
-let sequence_names =
-  List.map ~f:(fun s -> Sequence.name s)
+let score t = t.score
 
-let rec sequence name = function
-  | [] -> None
-  | s::_ when Sequence.name s = name -> Some s
-  | _::ss -> sequence name ss
+let sequences t = t.seqs
+
+let sequence_names t =
+  List.map ~f:(fun s -> Sequence.name s) t.seqs
+
+let sequence name t =
+  let rec find = function
+    | [] -> None
+    | s::_ when Sequence.name s = name -> Some s
+    | _::ss -> find ss
+  in
+  find t.seqs
 
 

@@ -42,6 +42,8 @@ profiles: ocaml_bio/META seq/META
 
 m_translate: profiles_lib
 
+maf: maf/.d
+
 $(SUBDIRS):
 	$(MAKE) -C $@ native-code
 
@@ -75,3 +77,6 @@ seq_clean:
 
 base/.d:
 	$(MAKE) -C base .d
+
+maf/.d:
+	$(MAKE) -C maf .d

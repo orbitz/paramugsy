@@ -1,6 +1,12 @@
 type t
 
-val make : Sequence.t list -> t
+module Score : sig
+  type t = string
+end
+
+val make : Score.t -> Sequence.t list -> t
+
+val score : t -> Score.t
 
 val sequences : t -> Sequence.t list
 

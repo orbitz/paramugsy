@@ -2,6 +2,10 @@ open Core.Std
 
 module Direction = struct
   type t = Forward | Reverse
+
+  let to_string = function
+    | Forward -> "+"
+    | Reverse -> "-"
 end
 
 type t = { name  : string

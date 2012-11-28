@@ -2,7 +2,7 @@ CAMLP4=
 OCAMLC_OPTS=-package core
 OCAMLOPT_OPTS=-for-pack Maf $(OCAMLC_OPTS)
 
-cources=sequence.ml alignment.ml reader.ml
+cources=sequence.ml alignment.ml reader.ml writer.ml
 
 sources=$(cources)
 

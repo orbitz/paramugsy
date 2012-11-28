@@ -6,7 +6,9 @@ let create t = t
 
 let rec read_anchor t =
   match In_channel.input_line t with
-    | Some l when String.is_prefix ~prefix:"a score=" (String.strip l) -> Some ()
+    | Some l when String.is_prefix ~prefix:"a score=" (String.strip l) ->
+      (* Drop the "a " *)
+      Some (String.drop_prefix l 2)
     | Some _ -> read_anchor t
     | None -> None
 
@@ -26,7 +28,7 @@ let seq_of_string l =
   Option.try_with
     (fun () ->
       match s with
-	| [name; start; size; d; total] when d = "+" || d = "-" ->
+	| ["s"; name; start; size; d; total] when d = "+" || d = "-" ->
 	  Sequence.make
 	    ~name
 	    ~start:(Int64.of_string start)
@@ -54,6 +56,6 @@ let read_alignment t =
 
 let read_next t =
   let open Option.Monad_infix in
-  read_anchor t    >>= fun () ->
+  read_anchor t    >>= fun score ->
   read_alignment t >>= fun aln ->
-  Some (Alignment.make aln)
+  Some (Alignment.make score aln)
