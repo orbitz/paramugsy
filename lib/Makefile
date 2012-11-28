@@ -1,4 +1,4 @@
-SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate
+SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate maf mafclean
 
 EXTERNAL_APPS = ocaml-bio ocaml-seq
 
@@ -24,7 +24,6 @@ SEQ_INSTALL_FILES = ort_seq.mli ort_seq.cmi \
 	seq.cma seq.cmxa seq.a
 
 .PHONY: all test clean $(SUBDIRS) $(EXTERNAL_APPS) $(subdirs_clean) \
-	base/.deps \
 	seq ocaml_bio seq_lcean ocaml_bio_clean
 
 all: $(SUBDIRS)
@@ -33,7 +32,7 @@ test: $(subdirs_test)
 
 clean: $(subdirs_clean) ocaml_bio_clean seq_clean
 
-base: ocaml_bio/META seq/META base/.deps
+base: ocaml_bio/META seq/META base/.d
 
 mugsy: ocaml_bio/META seq/META
 
@@ -43,8 +42,13 @@ profiles: ocaml_bio/META seq/META
 
 m_translate: profiles_lib
 
+maf: maf/.d
+
+mafclean: mafclean/.d maf
+
 $(SUBDIRS):
 	$(MAKE) -C $@ native-code
+	$(MAKE) -C $@ byte-code
 
 $(subdirs_test):
 	$(MAKE) -C $(patsubst %_test,%,$@) test
@@ -74,5 +78,11 @@ seq/META: ocaml-seq
 seq_clean:
 	-rm -rf seq
 
-base/.deps:
-	$(MAKE) -C base .deps
+base/.d:
+	$(MAKE) -C base .d
+
+maf/.d:
+	$(MAKE) -C maf .d
+
+mafclean/.d:
+	$(MAKE) -C mafclean .d

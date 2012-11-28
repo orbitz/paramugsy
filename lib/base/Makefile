@@ -1,5 +1,6 @@
 CAMLP4=-pp "camlp4o pa_extend.cmo"
-OCAMLC_OPTS=-package str,core_extended,async,seq,ocaml_bio
+OCAMLC_OPTS=-package str,core,core_extended,async,seq,ocaml_bio
+OCAMLOPT_OPTS=$(OCAMLC_OPTS)
 
 tests=async_cmd_test
 
@@ -39,9 +40,6 @@ all: paramugsy
 
 native-code: paramugsy
 
-.deps: $(sources) $(sources_mli)
-	ocamlfind ocamldep $(OCAMLC_OPTS) $(CAMLP4) $(sources) $(sources_mli) > .deps
-
 paramugsy: $(native_cmx)
 	ocamlfind ocamlopt $(OCAMLC_OPTS) -thread -linkpkg -o paramugsy $(native_cmx)
 
@@ -69,6 +67,3 @@ clean:
 
 # Dependencies
 include ../Ocamlrules.mk.in
-
-# This won't exist until it is generated, so .deps needs to run first
--include .deps
