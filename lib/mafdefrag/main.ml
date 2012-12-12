@@ -22,6 +22,10 @@ module Util = struct
   let end_of_range = function
     | Maf.Sequence.Range.Forward (_, e) -> e
     | Maf.Sequence.Range.Reverse (_, e) -> e
+
+  let extract_range_info = function
+    | Maf.Sequence.Range.Forward (s, e) -> ("+", s, Int64.succ e)
+    | Maf.Sequence.Range.Reverse (s, e) -> ("-", s, Int64.succ e)
 end
 
 module Anchor = struct
@@ -29,22 +33,27 @@ module Anchor = struct
 	     ; accession : string
 	     ; range     : Maf.Sequence.Range.t
 	     }
-  type t = seq list
+  type t = { pos  : Int64.t
+	   ; seqs : seq list
+	   }
 
   let get_accession_exn accession t =
     List.find_exn
       ~f:(fun seq -> seq.accession = accession)
-      t
+      t.seqs
 
-  let of_alignment aln =
-    List.map
-      ~f:(fun s ->
-	let (genome, _) = Util.split_accession (Maf.Sequence.name s) in
-	{ genome
-	; accession = Maf.Sequence.name s
-	; range     = Maf.Sequence.range s
-	})
-      (Maf.Alignment.sequences aln)
+  let of_alignment pos aln =
+    { pos
+    ; seqs =
+	List.map
+	  ~f:(fun s ->
+	    let (genome, _) = Util.split_accession (Maf.Sequence.name s) in
+	    { genome
+	    ; accession = Maf.Sequence.name s
+	    ; range     = Maf.Sequence.range s
+	    })
+	  (Maf.Alignment.sequences aln)
+    }
 end
 
 module Indicies = struct
@@ -73,7 +82,7 @@ module Indicies = struct
 	    ; anchors   = add_pos   seq.Anchor.accession pos acc.anchors
 	    })
 	  ~init:acc
-	  anchor)
+	  anchor.Anchor.seqs)
       ~init:{ genome    = String.Map.empty
 	    ; accession = String.Map.empty
 	    ; anchors   = String.Map.empty
@@ -81,14 +90,15 @@ module Indicies = struct
 end
 
 let anchors_of_maf fin =
-  let rec read_anchors acc r =
-    match Maf.Reader.read_next r with
+  let rec read_anchors acc =
+    let pos = In_channel.pos fin in
+    match Maf.Reader.read_next_channel fin with
       | None ->
-	Array.of_list acc
+	Array.of_list (List.rev acc)
       | Some aln ->
-	read_anchors ((Anchor.of_alignment aln)::acc) r
+	read_anchors ((Anchor.of_alignment pos aln)::acc)
   in
-  read_anchors [] (Maf.Reader.create fin)
+  read_anchors []
 
 let build_indicies = Indicies.build
 
@@ -121,6 +131,10 @@ let output_synchain fout anchors indicies =
 	  to_int_exn (Util.start_of_range s2.Anchor.range - Util.start_of_range s2.Anchor.range)
 	in
 	assert (dist = 0);
+	let (s1_dir, s1_start, s1_end) = Util.extract_range_info s1.Anchor.range in
+	assert (s1_start <> s1_end);
+	let (s2_dir, s2_start, s2_end) = Util.extract_range_info s2.Anchor.range in
+	assert (s2_start <> s2_end);
 	Out_channel.output_string
 	  fout
 	  (String.concat
@@ -130,21 +144,24 @@ let output_synchain fout anchors indicies =
 	     ; Int.to_string seqidx
 	     ; Int.to_string dist
 	     ; Int.to_string genomeidx
-	     ; Util.string_of_direction s1.Anchor.range
-	     ; Util.string_of_direction s2.Anchor.range
-	     ; Int64.to_string (Util.start_of_range s1.Anchor.range)
-	     ; Int64.to_string (Util.start_of_range s2.Anchor.range)
-	     ; Int64.to_string (Util.end_of_range s1.Anchor.range)
-	     ; Int64.to_string (Util.end_of_range s2.Anchor.range)
-	     ; "\n"
-	     ]))
+	     ; s1_dir
+	     ; s2_dir
+	     ; Int64.to_string s1_start
+	     ; Int64.to_string s1_end
+	     ; Int64.to_string s2_start
+	     ; Int64.to_string s2_end
+	     ]);
+	Out_channel.output_char fout '\n')
       sorted_seq
   in
   List.iter ~f:print_accession accessions
 
 let main () =
-  let anchors  = anchors_of_maf stdin in
-  let indicies = build_indicies anchors in
-  output_synchain stdout anchors indicies
+  In_channel.with_file
+    Sys.argv.(1)
+    ~f:(fun fin ->
+      let anchors  = anchors_of_maf fin in
+      let indicies = build_indicies anchors in
+      output_synchain stdout anchors indicies)
 
 let () = main ()
