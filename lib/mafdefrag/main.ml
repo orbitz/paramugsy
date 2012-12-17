@@ -89,12 +89,25 @@ let output_synchain fout anchors indicies =
   in
   List.iter ~f:print_accession accessions
 
+let run_synchain ifname ofname = ()
+
+let convert_to_maf fin fout anchors indicies =
+  ignore (Synchain.read fin)
+
+
 let main () =
+  let anchors =
+    In_channel.with_file
+      Sys.argv.(1)
+      ~f:(fun fin -> Anchor.anchors_of_maf fin)
+  in
+  let indicies = build_indicies anchors in
+  Out_channel.with_file
+    Sys.argv.(2)
+    ~f:(fun fout -> output_synchain fout anchors indicies);
+  run_synchain Sys.argv.(2) Sys.argv.(3);
   In_channel.with_file
-    Sys.argv.(1)
-    ~f:(fun fin ->
-      let anchors  = Anchor.anchors_of_maf fin in
-      let indicies = build_indicies anchors in
-      output_synchain stdout anchors indicies)
+    Sys.argv.(3)
+    ~f:(fun fin -> convert_to_maf fin stdout anchors indicies)
 
 let () = main ()
