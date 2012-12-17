@@ -19,6 +19,10 @@ lib/m_translate/m_translate
 lib/mugsy/mugsy_mugsy
 lib/nucmer/mugsy_nucmer
 lib/profiles/mugsy_profiles
+lib/mafclean/mafclean
+lib/mafclean/mafclean.byte
+lib/mafdefrag/mafdefrag
+lib/mafdefrag/mafdefrag.byte
 
 # Intermediates
 ._d/
