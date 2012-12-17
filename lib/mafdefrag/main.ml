@@ -1,61 +1,5 @@
 open Core.Std
 
-
-module Util = struct
-  let split_accession acc =
-    String.lsplit2_exn ~on:'.' acc
-
-  let string_of_range = function
-    | Maf.Sequence.Range.Forward (s, e) ->
-      sprintf "+(%s, %s)" (Int64.to_string s) (Int64.to_string e)
-    | Maf.Sequence.Range.Reverse (s, e) ->
-      sprintf "-(%s, %s)" (Int64.to_string s) (Int64.to_string e)
-
-  let string_of_direction = function
-    | Maf.Sequence.Range.Forward _ -> "+"
-    | Maf.Sequence.Range.Reverse _ -> "-"
-
-  let start_of_range = function
-    | Maf.Sequence.Range.Forward (s, _) -> s
-    | Maf.Sequence.Range.Reverse (s, _) -> s
-
-  let end_of_range = function
-    | Maf.Sequence.Range.Forward (_, e) -> e
-    | Maf.Sequence.Range.Reverse (_, e) -> e
-
-  let extract_range_info = function
-    | Maf.Sequence.Range.Forward (s, e) -> ("+", s, Int64.succ e)
-    | Maf.Sequence.Range.Reverse (s, e) -> ("-", s, Int64.succ e)
-end
-
-module Anchor = struct
-  type seq = { genome    : string
-	     ; accession : string
-	     ; range     : Maf.Sequence.Range.t
-	     }
-  type t = { pos  : Int64.t
-	   ; seqs : seq list
-	   }
-
-  let get_accession_exn accession t =
-    List.find_exn
-      ~f:(fun seq -> seq.accession = accession)
-      t.seqs
-
-  let of_alignment pos aln =
-    { pos
-    ; seqs =
-	List.map
-	  ~f:(fun s ->
-	    let (genome, _) = Util.split_accession (Maf.Sequence.name s) in
-	    { genome
-	    ; accession = Maf.Sequence.name s
-	    ; range     = Maf.Sequence.range s
-	    })
-	  (Maf.Alignment.sequences aln)
-    }
-end
-
 module Indicies = struct
   type t = { genome    : int String.Map.t
 	   ; accession : int String.Map.t
@@ -88,17 +32,6 @@ module Indicies = struct
 	    ; anchors   = String.Map.empty
 	    }
 end
-
-let anchors_of_maf fin =
-  let rec read_anchors acc =
-    let pos = In_channel.pos fin in
-    match Maf.Reader.read_next_channel fin with
-      | None ->
-	Array.of_list (List.rev acc)
-      | Some aln ->
-	read_anchors ((Anchor.of_alignment pos aln)::acc)
-  in
-  read_anchors []
 
 let build_indicies = Indicies.build
 
@@ -160,7 +93,7 @@ let main () =
   In_channel.with_file
     Sys.argv.(1)
     ~f:(fun fin ->
-      let anchors  = anchors_of_maf fin in
+      let anchors  = Anchor.anchors_of_maf fin in
       let indicies = build_indicies anchors in
       output_synchain stdout anchors indicies)
 
