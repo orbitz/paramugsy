@@ -81,9 +81,17 @@ let run_synchain synchain_file chained_file = Ok ()
 let build_chained chained_file =
   In_channel.with_file
     chained_file
-    ~f:(fun fin -> Ok (Synchain.read fin))
+    ~f:(fun fin ->
+      match Synchain.read fin with
+	| Some chained -> Ok chained
+	| None         -> Error `Bad_chain_file)
 
-let verify_chained anchors indicies chained = Ok ()
+let verify_chained anchors indicies chained =
+  match Synchain_verifier.verify anchors indicies chained with
+    | [] ->
+      Ok ()
+    | _ ->
+      Error `Failed_verification
 
 let write_maf chained out_maf = Ok ()
 

@@ -8,8 +8,6 @@ type t = { pos  : Int64.t
 	 ; seqs : seq list
 	 }
 
-type errors = [ `Bad_accession of string ]
-
 let get_accession_exn accession t =
   List.find_exn
     ~f:(fun seq -> seq.accession = accession)
