@@ -2,7 +2,7 @@ CAMLP4=
 OCAMLC_OPTS=-package core,maf
 OCAMLOPT_OPTS=$(OCAMLC_OPTS)
 
-cources=util.ml anchor.ml synchain.ml
+cources=util.ml anchor.ml anchor_index.ml synchain.ml
 
 sources=$(cources) main.ml
 

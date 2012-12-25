@@ -1,42 +1,12 @@
 open Core.Std
 
-module Indicies = struct
-  type t = { genome    : int String.Map.t
-	   ; accession : int String.Map.t
-	   ; anchors   : int list String.Map.t
-	   }
-
-  let add_index s idx =
-    match Map.find idx s with
-      | Some _ -> idx
-      | None   -> Map.add ~key:s ~data:(Map.length idx) idx
-
-  let add_pos accession pos idx =
-    match Map.find idx accession with
-      | Some v -> Map.add ~key:accession ~data:(pos::v) idx
-      | None   -> Map.add ~key:accession ~data:[pos] idx
-
-  let build =
-    Array.foldi
-      ~f:(fun pos acc anchor ->
-	List.fold_left
-	  ~f:(fun acc seq ->
-	    { genome    = add_index seq.Anchor.genome        acc.genome
-	    ; accession = add_index seq.Anchor.accession     acc.accession
-	    ; anchors   = add_pos   seq.Anchor.accession pos acc.anchors
-	    })
-	  ~init:acc
-	  anchor.Anchor.seqs)
-      ~init:{ genome    = String.Map.empty
-	    ; accession = String.Map.empty
-	    ; anchors   = String.Map.empty
-	    }
-end
-
-let build_indicies = Indicies.build
-
 let output_synchain fout anchors indicies =
-  let accessions = List.sort ~cmp:String.compare (Map.keys indicies.Indicies.anchors) in
+  let split_accession_exn acc =
+    match Util.split_accession acc with
+      | Some x -> x
+      | None -> failwith "Whoops"
+  in
+  let accessions = List.sort ~cmp:String.compare (Map.keys indicies.Anchor_index.anchors) in
   let cmp_start (_, l) (_, r) =
     Maf.Sequence.Range.compare l.Anchor.range r.Anchor.range
   in
@@ -49,14 +19,14 @@ let output_synchain fout anchors indicies =
     let seq =
       List.map
 	~f:(fun idx -> (idx, Anchor.get_accession_exn accession anchors.(idx)))
-	(Map.find_exn indicies.Indicies.anchors accession)
+	(Map.find_exn indicies.Anchor_index.anchors accession)
     in
     let sorted_seq =
       List.sort ~cmp:cmp_start seq
     in
-    let (genome, _) = Util.split_accession accession in
-    let seqidx      = Map.find_exn indicies.Indicies.accession accession in
-    let genomeidx   = Map.find_exn indicies.Indicies.genome genome in
+    let (genome, _) = split_accession_exn accession in
+    let seqidx      = Map.find_exn indicies.Anchor_index.accession accession in
+    let genomeidx   = Map.find_exn indicies.Anchor_index.genome genome in
     iter_by_2
       ~f:(fun ((idxl, s1), (idxr, s2)) ->
 	let dist =
@@ -94,20 +64,56 @@ let run_synchain ifname ofname = ()
 let convert_to_maf fin fout anchors indicies =
   ignore (Synchain.read fin)
 
+let build_anchors in_maf =
+  In_channel.with_file
+    in_maf
+    ~f:Anchor.anchors_of_maf
+
+let build_indicies anchors = Ok (Anchor_index.build anchors)
+
+let write_synchain synchain_file anchors indicies =
+  Out_channel.with_file
+    synchain_file
+    ~f:(fun fout -> Ok (output_synchain fout anchors indicies))
+
+let run_synchain synchain_file chained_file = Ok ()
+
+let build_chained chained_file =
+  In_channel.with_file
+    chained_file
+    ~f:(fun fin -> Ok (Synchain.read fin))
+
+let verify_chained anchors indicies chained = Ok ()
+
+let write_maf chained out_maf = Ok ()
+
+let run () =
+  let in_maf        = Sys.argv.(1) in
+  let synchain_file = Sys.argv.(2) in
+  let chained_file  = Sys.argv.(3) in
+  let out_maf       = Sys.argv.(4) in
+  let open Result.Monad_infix      in
+  build_anchors in_maf
+  >>= fun anchors ->
+  build_indicies anchors
+  >>= fun indicies ->
+  write_synchain synchain_file anchors indicies
+  >>= fun () ->
+  run_synchain synchain_file chained_file
+  >>= fun () ->
+  build_chained chained_file
+  >>= fun chained ->
+  verify_chained anchors indicies chained
+  >>= fun () ->
+  write_maf chained out_maf
 
 let main () =
-  let anchors =
-    In_channel.with_file
-      Sys.argv.(1)
-      ~f:(fun fin -> Anchor.anchors_of_maf fin)
-  in
-  let indicies = build_indicies anchors in
-  Out_channel.with_file
-    Sys.argv.(2)
-    ~f:(fun fout -> output_synchain fout anchors indicies);
-  run_synchain Sys.argv.(2) Sys.argv.(3);
-  In_channel.with_file
-    Sys.argv.(3)
-    ~f:(fun fin -> convert_to_maf fin stdout anchors indicies)
+  match run () with
+    | Ok () ->
+      0
+    | Error _ -> begin
+      fprintf stderr "WEEESA DEAD\n";
+      1
+    end
 
-let () = main ()
+let () = exit (main ())

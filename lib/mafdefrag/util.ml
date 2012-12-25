@@ -1,7 +1,7 @@
 open Core.Std
 
 let split_accession acc =
-  String.lsplit2_exn ~on:'.' acc
+  String.lsplit2 ~on:'.' acc
 
 let string_of_range = function
   | Maf.Sequence.Range.Forward (s, e) ->
