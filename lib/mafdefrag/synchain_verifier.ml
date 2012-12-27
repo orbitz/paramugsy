@@ -6,11 +6,12 @@ let create_chain_index chained =
       ~f:(fun m c ->
 	List.fold_left
 	  ~f:(fun m s ->
+	    let range = s.Synchain.range in
 	    match Map.find m s.Synchain.accession_idx with
 	      | Some l ->
-		Map.add m ~key:s.Synchain.accession_idx ~data:(s.Synchain.range::l)
+		Map.add m ~key:s.Synchain.accession_idx ~data:(range::l)
 	      | None ->
-		Map.add m ~key:s.Synchain.accession_idx ~data:[s.Synchain.range])
+		Map.add m ~key:s.Synchain.accession_idx ~data:[range])
 	  ~init:m
 	  c)
       ~init:Int.Map.empty
@@ -18,7 +19,8 @@ let create_chain_index chained =
   in
   Map.fold
     ~f:(fun ~key ~data acc ->
-      Map.add acc ~key ~data:(List.sort ~cmp:Maf.Sequence.Range.compare data))
+      let sorted = List.sort ~cmp:Maf.Sequence.Range.compare data in
+      Map.add acc ~key ~data:sorted)
     ~init:Int.Map.empty
     idx
 
@@ -37,26 +39,28 @@ let create_anchors_index anchors indicies =
     ~init:Int.Map.empty
     indicies.Anchor_index.anchors
 
-let rec is_contigious = function
+let rec is_contigious acc = function
   | []  ->
-    true
+    acc
   | [_] ->
-    true
-  | x1::x2::xs ->
+    acc
+  | x1::x2::xs -> begin
     let open Int64 in
-    if (Util.end_of_range x1 - Util.start_of_range x2) = one then
-      is_contigious (x2::xs)
+    if (Util.start_of_range x2 - Util.end_of_range x1) = one then
+      is_contigious acc (x2::xs)
     else
-      false
+      is_contigious ((x1, x2)::acc) (x2::xs)
+  end
 
 let verify anchors indicies chained =
   let chained_idx = create_chain_index chained in
   ignore (create_anchors_index anchors indicies);
   Map.fold
     ~f:(fun ~key ~data acc ->
-      if is_contigious data then
-	acc
-      else
-	key::acc)
+      match is_contigious [] data with
+	| [] ->
+	  acc
+	| l ->
+	  (List.map ~f:(fun (x1, x2) -> (key, x1, x2)) l) @ acc)
     ~init:[]
     chained_idx

@@ -78,20 +78,17 @@ let write_synchain synchain_file anchors indicies =
 
 let run_synchain synchain_file chained_file = Ok ()
 
-let build_chained chained_file =
+let read_chained chained_file =
   In_channel.with_file
     chained_file
-    ~f:(fun fin ->
-      match Synchain.read fin with
-	| Some chained -> Ok chained
-	| None         -> Error `Bad_chain_file)
+    ~f:(fun fin -> Synchain.read fin)
 
 let verify_chained anchors indicies chained =
   match Synchain_verifier.verify anchors indicies chained with
     | [] ->
       Ok ()
-    | _ ->
-      Error `Failed_verification
+    | l ->
+      Error (`Failed_verification l)
 
 let write_maf chained out_maf = Ok ()
 
@@ -101,27 +98,54 @@ let run () =
   let chained_file  = Sys.argv.(3) in
   let out_maf       = Sys.argv.(4) in
   let open Result.Monad_infix      in
+  printf "Reading anchors...\n%!";
   build_anchors in_maf
   >>= fun anchors ->
+  printf "Building indicies...\n%!";
   build_indicies anchors
   >>= fun indicies ->
+  printf "Writing synchain...\n%!";
   write_synchain synchain_file anchors indicies
   >>= fun () ->
+  printf "Running synchain...\n%!";
   run_synchain synchain_file chained_file
   >>= fun () ->
-  build_chained chained_file
+  printf "Reading chained...\n%!";
+  read_chained chained_file
   >>= fun chained ->
+  printf "Verifying chained...\n%!";
   verify_chained anchors indicies chained
   >>= fun () ->
+  printf "Writing maf...\n%!";
   write_maf chained out_maf
 
 let main () =
   match run () with
     | Ok () ->
       0
-    | Error _ -> begin
-      fprintf stderr "WEEESA DEAD\n";
+    | Error (`Bad_chain_file line) -> begin
+      fprintf stderr "Bad chain file: '%s'\n" line;
       1
+    end
+    | Error (`Failed_verification failed) -> begin
+      fprintf stderr "Chained file faild verification\n";
+      List.iter
+	~f:(fun (acc_idx, r1, r2) ->
+	  fprintf stderr "%d (%s, %s) (%s, %s) - %s\n"
+	    acc_idx
+	    (Int64.to_string (Util.start_of_range r1))
+	    (Int64.to_string (Util.end_of_range r1))
+	    (Int64.to_string (Util.start_of_range r2))
+	    (Int64.to_string (Util.end_of_range r2))
+	    (Int64.to_string (Int64.(-)
+				(Util.start_of_range r2)
+				(Util.end_of_range r1))))
+	(List.rev failed);
+      2
+    end
+    | Error (`Bad_accession acc) -> begin
+      fprintf stderr "Bad accession: %s\n" acc;
+      3
     end
 
 let () = exit (main ())

@@ -6,4 +6,4 @@ type seq = { accession_idx : int
 
 type t = seq list
 
-val read : In_channel.t -> t Array.t option
+val read : In_channel.t -> (t Array.t, [> `Bad_chain_file of string ]) Result.t

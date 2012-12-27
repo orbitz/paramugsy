@@ -8,7 +8,7 @@ type t = seq list
 
 let read fin =
   let split_i l =
-    String.split ~on:' ' l
+    List.filter ~f:((<>) "") (String.split ~on:' ' l)
   in
   let rec parse_seqs acc = function
     | [";"] ->
@@ -23,9 +23,9 @@ let read fin =
 	  let range =
 	    match d with
 	      | "+" ->
-		Maf.Sequence.Range.Forward (start, stop)
+		Maf.Sequence.Range.Forward (start, Int64.pred stop)
 	      | "-" ->
-		Maf.Sequence.Range.Reverse (start, stop)
+		Maf.Sequence.Range.Reverse (start, Int64.pred stop)
 	      | _ -> failwith "UGH"
 	  in
 	  parse_seqs ({accession_idx = seq;  range = range}::acc) xs
@@ -42,17 +42,18 @@ let read fin =
   in
   let rec find_i acc =
     match In_channel.input_line fin with
-      | Some l when String.is_prefix ~prefix:"I " (String.strip l) ->
-	let open Option.Monad_infix in
-	parse_i (split_i l) >>= fun i ->
-	find_i (i::acc)
+      | Some l when String.is_prefix ~prefix:"I " (String.strip l) -> begin
+	match parse_i (split_i l) with
+	  | Some i -> find_i (i::acc)
+	  | None   -> Error (`Bad_chain_file l)
+      end
       | Some l when String.is_prefix ~prefix:"V " (String.strip l) ->
 	find_i acc
-      | Some _ ->
-	None
+      | Some l ->
+	Error (`Bad_chain_file l)
       | None ->
-	Some (List.rev acc)
+	Ok (List.rev acc)
   in
-  let open Option.Monad_infix in
+  let open Result.Monad_infix in
   find_i [] >>= fun acc ->
-  Some (Array.of_list acc)
+  Ok (Array.of_list acc)
