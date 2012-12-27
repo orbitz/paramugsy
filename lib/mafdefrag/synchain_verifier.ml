@@ -24,20 +24,20 @@ let create_chain_index chained =
     ~init:Int.Map.empty
     idx
 
-let create_anchors_index anchors indicies =
-  Map.fold
+let create_anchors_index indicies =
+  Anchor_index.seq_anchors_fold
     ~f:(fun ~key ~data m ->
       let ranges =
 	List.map
 	  ~f:(fun idx ->
-	    let seq = Anchor.get_accession_exn key anchors.(idx) in
+	    let seq = Anchor.get_accession_exn key (Anchor_index.anchors_exn idx indicies) in
 	    seq.Anchor.range)
 	  data
       in
-      let accession_idx = Map.find_exn indicies.Anchor_index.accession key in
+      let accession_idx = Anchor_index.accession_exn key indicies in
       Map.add m ~key:accession_idx ~data:(List.sort ~cmp:Maf.Sequence.Range.compare ranges))
     ~init:Int.Map.empty
-    indicies.Anchor_index.anchors
+    indicies
 
 let rec is_contigious acc = function
   | []  ->
@@ -52,9 +52,9 @@ let rec is_contigious acc = function
       is_contigious ((x1, x2)::acc) (x2::xs)
   end
 
-let verify anchors indicies chained =
+let verify indicies chained =
   let chained_idx = create_chain_index chained in
-  ignore (create_anchors_index anchors indicies);
+  ignore (create_anchors_index indicies);
   Map.fold
     ~f:(fun ~key ~data acc ->
       match is_contigious [] data with

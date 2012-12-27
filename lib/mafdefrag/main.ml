@@ -1,12 +1,12 @@
 open Core.Std
 
-let output_synchain fout anchors indicies =
+let output_synchain fout indicies =
   let split_accession_exn acc =
     match Util.split_accession acc with
       | Some x -> x
       | None -> failwith "Whoops"
   in
-  let accessions = List.sort ~cmp:String.compare (Map.keys indicies.Anchor_index.anchors) in
+  let accessions = List.sort ~cmp:String.compare (Anchor_index.seq_anchors_keys indicies) in
   let cmp_start (_, l) (_, r) =
     Maf.Sequence.Range.compare l.Anchor.range r.Anchor.range
   in
@@ -18,15 +18,16 @@ let output_synchain fout anchors indicies =
   let print_accession accession =
     let seq =
       List.map
-	~f:(fun idx -> (idx, Anchor.get_accession_exn accession anchors.(idx)))
-	(Map.find_exn indicies.Anchor_index.anchors accession)
+	~f:(fun idx ->
+	  (idx, Anchor.get_accession_exn accession (Anchor_index.anchors_exn idx indicies)))
+	(Anchor_index.seq_anchors_exn accession indicies)
     in
     let sorted_seq =
       List.sort ~cmp:cmp_start seq
     in
     let (genome, _) = split_accession_exn accession in
-    let seqidx      = Map.find_exn indicies.Anchor_index.accession accession in
-    let genomeidx   = Map.find_exn indicies.Anchor_index.genome genome in
+    let seqidx      = Anchor_index.accession_exn accession indicies in
+    let genomeidx   = Anchor_index.genome_exn genome indicies in
     iter_by_2
       ~f:(fun ((idxl, s1), (idxr, s2)) ->
 	let dist =
@@ -71,10 +72,10 @@ let build_anchors in_maf =
 
 let build_indicies anchors = Ok (Anchor_index.build anchors)
 
-let write_synchain synchain_file anchors indicies =
+let write_synchain synchain_file indicies =
   Out_channel.with_file
     synchain_file
-    ~f:(fun fout -> Ok (output_synchain fout anchors indicies))
+    ~f:(fun fout -> Ok (output_synchain fout indicies))
 
 let run_synchain synchain_file chained_file = Ok ()
 
@@ -83,8 +84,8 @@ let read_chained chained_file =
     chained_file
     ~f:(fun fin -> Synchain.read fin)
 
-let verify_chained anchors indicies chained =
-  match Synchain_verifier.verify anchors indicies chained with
+let verify_chained indicies chained =
+  match Synchain_verifier.verify indicies chained with
     | [] ->
       Ok ()
     | l ->
@@ -105,7 +106,7 @@ let run () =
   build_indicies anchors
   >>= fun indicies ->
   printf "Writing synchain...\n%!";
-  write_synchain synchain_file anchors indicies
+  write_synchain synchain_file indicies
   >>= fun () ->
   printf "Running synchain...\n%!";
   run_synchain synchain_file chained_file
@@ -114,7 +115,7 @@ let run () =
   read_chained chained_file
   >>= fun chained ->
   printf "Verifying chained...\n%!";
-  verify_chained anchors indicies chained
+  verify_chained indicies chained
   >>= fun () ->
   printf "Writing maf...\n%!";
   write_maf chained out_maf
