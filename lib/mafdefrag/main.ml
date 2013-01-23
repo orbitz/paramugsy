@@ -91,7 +91,10 @@ let verify_chained indicies chained =
     | l ->
       Error (`Failed_verification l)
 
-let write_maf chained out_maf = Ok ()
+let write_maf indicies chained out_maf =
+Out_channel.with_file
+  out_maf
+  (fun f -> Maf_maker.write indiices chained f)
 
 let run () =
   let in_maf        = Sys.argv.(1) in
@@ -118,7 +121,7 @@ let run () =
   verify_chained indicies chained
   >>= fun () ->
   printf "Writing maf...\n%!";
-  write_maf chained out_maf
+  write_maf indicies chained out_maf
 
 let main () =
   match run () with

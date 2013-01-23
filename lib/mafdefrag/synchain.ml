@@ -26,7 +26,7 @@ let read fin =
 		Maf.Sequence.Range.Forward (start, Int64.pred stop)
 	      | "-" ->
 		Maf.Sequence.Range.Reverse (start, Int64.pred stop)
-	      | _ -> failwith "UGH"
+	      | _ -> assert false
 	  in
 	  parse_seqs ({accession_idx = seq;  range = range}::acc) xs
 	end
