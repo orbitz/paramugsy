@@ -88,28 +88,30 @@ let print_missing =
 	Int64.(printf "Gap (%s, %s) %s\n"
 		 (to_string (succ e1))
 		 (to_string (pred s2))
-		 (to_string (s2 - e1)));
-	(* Int64.(printf "(%s, %s) (%s, %s)\n" *)
-	(* 	 (to_string s1) *)
-	(* 	 (to_string e1) *)
-	(* 	 (to_string s2) *)
-	(* 	 (to_string e2)) *)
+		 (to_string (s2 - e1)))
       end)
 
 let main () =
   let genomes = read_genomes (Maf.Reader.create stdin) in
   let genomes_names = Map.keys genomes.genomes in
-  List.iter
-    ~f:(fun genome ->
-      match find_missing genome genomes with
-	| [] ->
-	  ()
-	| missing -> begin
-	  printf "Genome: %s\n" genome;
-	  printf "%s %d faults\n" genome (List.length missing);
-	  print_missing missing;
-	  print_newline ()
-	end)
-    genomes_names
+  let some_missing =
+    List.fold_left
+      ~f:(fun some_missing genome ->
+	match find_missing genome genomes with
+	  | [] ->
+	    some_missing
+	  | missing -> begin
+	    printf "Genome: %s\n" genome;
+	    printf "%s %d faults\n" genome (List.length missing);
+	    print_missing missing;
+	    print_newline ();
+	    true
+	  end)
+      ~init:false
+      genomes_names
+  in
+  match some_missing with
+    | true  -> exit 1
+    | false -> exit 0
 
 let () = main ()
