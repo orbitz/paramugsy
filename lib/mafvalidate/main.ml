@@ -101,11 +101,11 @@ let main () =
   let genomes_names = Map.keys genomes.genomes in
   List.iter
     ~f:(fun genome ->
-      printf "Genome: %s\n" genome;
       match find_missing genome genomes with
 	| [] ->
 	  ()
 	| missing -> begin
+	  printf "Genome: %s\n" genome;
 	  printf "%s %d faults\n" genome (List.length missing);
 	  print_missing missing;
 	  print_newline ()
