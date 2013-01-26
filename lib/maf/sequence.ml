@@ -29,10 +29,26 @@ module Range = struct
   let of_coord ~start ~size ~total ~d =
     let open Int64 in
     match d with
-      | Direction.Forward ->
-	Forward (start, start + pred size)
-      | Direction.Reverse ->
-	Reverse (total - start - pred size, total - start)
+      | Direction.Forward -> begin
+	let s = start in
+	let e = start + pred size in
+	assert (s <= e);
+	Forward (s, e)
+      end
+      | Direction.Reverse -> begin
+	let s = pred total - (start + pred size) in
+	let e = pred total - start in
+	assert (s <= e);
+	Reverse (s, e)
+      end
+
+    let pp = function
+      | Forward (s, e) -> Int64.(printf "+ (%s, %s)\n"
+				   (to_string s)
+				   (to_string e))
+      | Reverse (s, e) -> Int64.(printf "- (%s, %s)\n"
+				   (to_string s)
+				   (to_string e))
 
 end
 
@@ -64,3 +80,11 @@ let sequence t = t.seq
 
 let range t =
   Range.of_coord ~start:t.start ~size:t.size ~total:t.total ~d:t.d
+
+let pp t =
+  printf "Name: %s\n" t.name;
+  printf "Start: %s\n" (Int64.to_string t.start);
+  printf "Size: %s\n" (Int64.to_string t.size);
+  printf "Total: %s\n" (Int64.to_string t.total);
+  printf "Range: ";
+  Range.pp (range t);

@@ -54,3 +54,4 @@ val direction : t -> Direction.t
 val total     : t -> Int64.t
 val sequence  : t -> string
 val range     : t -> Range.t
+val pp        : t -> unit
