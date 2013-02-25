@@ -1,4 +1,4 @@
-SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate maf mafclean mafvalidate
+SUBDIRS = base mugsy nucmer profiles profiles_lib m_translate maf mafclean mafvalidate mafdefrag
 
 EXTERNAL_APPS = ocaml-bio ocaml-seq
 

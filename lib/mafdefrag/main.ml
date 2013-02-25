@@ -92,9 +92,10 @@ let verify_chained indicies chained =
       Error (`Failed_verification l)
 
 let write_maf indicies chained out_maf =
-Out_channel.with_file
-  out_maf
-  (fun f -> Maf_maker.write indiices chained f)
+  Ok ()
+  (* Out_channel.with_file *)
+  (*   out_maf *)
+  (*   (fun f -> Maf_maker.write indiices chained f) *)
 
 let run () =
   let in_maf        = Sys.argv.(1) in
