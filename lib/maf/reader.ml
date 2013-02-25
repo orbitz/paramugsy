@@ -61,3 +61,5 @@ let read_next t =
   read_anchor t    >>= fun score ->
   read_alignment t >>= fun aln ->
   Some (Alignment.make score aln)
+
+let read_next_channel = read_next
