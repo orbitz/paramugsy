@@ -18,7 +18,22 @@ let rec enforce_no_overlaps = function
   | _ ->
     Error `Overlap
 
-let write_maf missing fastas = Ok ()
+let make_genome_map =
+  List.fold_left
+    ~f:(fun m (genome, missing) ->
+      String.Map.add ~key:genome ~data:missing m)
+    ~init:String.Map.empty
+
+let fill_from_fasta fasta genome_map =
+  failwith "nyi"
+
+let write_maf missing fastas =
+  let genome_map = make_genome_map missing in
+  List.iter
+    ~f:(fun fasta ->
+      fill_from_fasta fasta genome_map)
+    fastas;
+  Ok ()
 
 let run () =
   let open Result.Monad_infix in
