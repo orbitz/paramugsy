@@ -2,7 +2,7 @@ open Core.Std
 
 module Fault = Maf.Missing_seqs.Fault
 
-let rec no_overlaps = function
+let no_overlaps = function
   | [] ->
     true
   | (Fault.Overlap _)::_ ->
