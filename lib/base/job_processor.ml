@@ -339,11 +339,11 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
       | Result.Ok maf -> begin
 	Copy_file.copy_file maf t.out_maf >>> fun _ ->
 	t.log t.out_maf;
-	never_returns (Shutdown.shutdown_and_raise 0)
+	shutdown 0
       end
       | Result.Error _ -> begin
 	t.log "Failed";
-	never_returns (Shutdown.shutdown_and_raise 1)
+	shutdown 1
       end
 end
 
