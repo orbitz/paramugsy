@@ -82,9 +82,10 @@ let rec next_header t =
 	end
     end
 
-let strip_bad_chars buf len =
+let strip_bad_chars buf ~pos ~len =
+  let pos_end = pos + len in
   let rec sbc' i dropped =
-    if i < len then begin
+    if i < pos_end then begin
       if Char.is_whitespace buf.[i] then
 	sbc' (i + 1) (dropped + 1)
       else if dropped > 0 then begin
@@ -97,10 +98,11 @@ let strip_bad_chars buf len =
     else
       len - dropped
   in
-  sbc' 0 0
+  sbc' pos 0
 
 let rec next_seq t ~buf ~pos ~len =
-  match find_begin_header t.buf ~pos:0 ~len with
+  let min_len = min len t.len in
+  match find_begin_header t.buf ~pos:0 ~len:min_len with
     | Some idx -> begin
       String.blit
 	~src:t.buf
@@ -109,28 +111,23 @@ let rec next_seq t ~buf ~pos ~len =
 	~dst_pos:pos
 	~len:idx;
       move_buf_left t ~pos:idx;
-      strip_bad_chars buf idx
+      strip_bad_chars buf ~pos ~len:idx
     end
-    | None when t.len > len -> begin
+    | None when t.len > 0 && len > 0 -> begin
       String.blit
 	~src:t.buf
 	~src_pos:0
 	~dst:buf
 	~dst_pos:pos
-	~len;
-      move_buf_left t ~pos:len;
-      strip_bad_chars buf len
+	~len:min_len;
+      move_buf_left t ~pos:min_len;
+      let stripped_len = strip_bad_chars buf ~pos ~len:min_len in
+      stripped_len + next_seq t ~buf ~pos:(pos + stripped_len) ~len:(len - stripped_len)
     end
-    | None -> begin
-      let src_len = t.len in
-      String.blit
-	~src:t.buf
-	~src_pos:0
-	~dst:buf
-	~dst_pos:pos
-	~len:src_len;
-      move_buf_left t ~pos:t.len;
+    | None when len > 0 -> begin
       match read_buf_max t with
-	| 0 -> strip_bad_chars buf src_len
-	| _ -> next_seq t ~buf ~pos:(pos + src_len) ~len:(len - src_len)
+	| 0 -> 0
+	| _ -> next_seq t ~buf ~pos ~len
     end
+    | None ->
+      0
