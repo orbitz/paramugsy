@@ -1,5 +1,5 @@
 CAMLP4=
-OCAMLC_OPTS=-package maf
+OCAMLC_OPTS=-package maf,fasta
 OCAMLOPT_OPTS=$(OCAMLC_OPTS)
 
 cources=
