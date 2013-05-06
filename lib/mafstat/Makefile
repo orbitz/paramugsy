@@ -2,7 +2,7 @@ CAMLP4=
 OCAMLC_OPTS=-package maf
 OCAMLOPT_OPTS=$(OCAMLC_OPTS)
 
-cources=p_missing.ml
+cources=p_missing.ml p_core.ml
 
 sources=$(cources) main.ml
 

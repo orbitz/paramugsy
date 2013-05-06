@@ -11,9 +11,9 @@ let map_cons key data m =
     | None   -> Map.add ~key ~data:[data] m
 
 let create () =
-  { counted = Int64.zero
+  { counted       = Int64.zero
   ; genome_ranges = String.Map.empty
-  ; genomes = String.Map.empty
+  ; genomes       = String.Map.empty
   }
 
 let add al t =
