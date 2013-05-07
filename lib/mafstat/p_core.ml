@@ -49,7 +49,15 @@ let add al t =
     t
 
 let finalize dir t =
-  let total_genomes = Map.length t.genomes in
+  let genomes =
+    List.fold_left
+      ~f:(fun acc g ->
+	let (genome, _) = String.lsplit2_exn ~on:'.' g in
+	Set.add acc genome)
+      ~init:String.Set.empty
+      (Map.keys t.genomes)
+  in
+  let total_genomes = Set.length genomes in
   let total_bp =
     List.fold_left
       ~f:Int64.(+)
