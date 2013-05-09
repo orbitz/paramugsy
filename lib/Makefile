@@ -53,7 +53,6 @@ mafstat: maf
 $(SUBDIRS):
 	-$(MAKE) -C $@ .d
 	$(MAKE) -C $@ native-code
-	$(MAKE) -C $@ byte-code
 
 $(subdirs_test):
 	$(MAKE) -C $(patsubst %_test,%,$@) test
