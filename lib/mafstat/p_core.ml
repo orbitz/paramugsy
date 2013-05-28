@@ -1,27 +1,31 @@
 open Core.Std
 
-type t = { no_gaps : (int * Int64.t) list
-	 ; genomes : Int64.t String.Map.t
+type t = { no_gaps_columns : (int * int) list
+	 ; genomes         : Int64.t String.Map.t
 	 }
 
 let create () =
-  { no_gaps = []
-  ; genomes = String.Map.empty
+  { no_gaps_columns = []
+  ; genomes         = String.Map.empty
   }
 
-let has_gap s = String.contains s '-'
-
-let rec any = function
-  | []      -> false
-  | true::_ -> true
-  | _::xs   -> any xs
+let collapse_seq s1 seq =
+  let s2 = Maf.Sequence.sequence seq in
+  assert (String.length s1 = String.length s2);
+  for i = 0 to String.length s1 - 1 do
+    if s2.[i] = '-' then
+      s1.[i] <- '-'
+  done;
+  s1
 
 let add al t =
   let seqs = Maf.Alignment.sequences al in
-  let with_gaps =
-    List.map
-      ~f:(fun s -> has_gap (Maf.Sequence.sequence s))
-      seqs
+  let hd   = List.hd_exn seqs in
+  let collapsed =
+    List.fold_left
+      ~f:collapse_seq
+      ~init:(Maf.Sequence.sequence hd)
+      (List.tl_exn seqs)
   in
   let genomes =
     List.fold_left
@@ -33,46 +37,44 @@ let add al t =
       ~init:t.genomes
       seqs
   in
-  if not (any with_gaps) then
+  let num_gaps = String.count ~f:((=) '-') collapsed in
+  let num_bp = String.length collapsed - num_gaps in
+  if num_gaps > 0 then
     let num = List.length seqs in
-    let bp  =
-      List.fold_left
-	~f:(fun acc s ->
-	  Int64.(acc + Maf.Sequence.size s))
-	~init:Int64.zero
-	seqs
-    in
-    { no_gaps = (num, bp)::t.no_gaps
-    ; genomes = genomes
+    { no_gaps_columns = (num, num_bp)::t.no_gaps_columns
+    ; genomes         = genomes
     }
   else
-    t
+    { t with genomes = genomes }
 
 let finalize dir t =
   let genomes =
-    List.fold_left
-      ~f:(fun acc g ->
-	let (genome, _) = String.lsplit2_exn ~on:'.' g in
-	Set.add acc genome)
-      ~init:String.Set.empty
-      (Map.keys t.genomes)
+    Map.fold
+      ~f:(fun ~key ~data acc ->
+	let (genome, _) = String.lsplit2_exn ~on:'.' key in
+	Map.change
+	  acc
+	  genome
+	  (function
+	    | Some v -> Some Int64.(v + data)
+	    | None   -> Some data))
+      ~init:String.Map.empty
+      t.genomes
   in
-  let total_genomes = Set.length genomes in
-  let total_bp =
-    List.fold_left
-      ~f:Int64.(+)
-      ~init:Int64.zero
-      (Map.data t.genomes)
+  let min_genome_size =
+    List.hd_exn
+      (List.sort ~cmp:Int64.compare (Map.data genomes))
   in
+  let total_genomes = Map.length genomes in
   let core =
     List.filter
       ~f:(fun (n, _) -> n = total_genomes)
-      t.no_gaps
+      t.no_gaps_columns
   in
-  let core_bp =
+  let core_cols =
     List.fold_left
       ~f:(fun acc (_, bp) ->
-	Int64.(acc + bp))
+	Int64.(acc + of_int bp))
       ~init:Int64.zero
       core
   in
@@ -82,6 +84,6 @@ let finalize dir t =
       Out_channel.output_lines
 	w
 	[ String.concat ~sep:"\t" ["num_genomes"; Int.to_string total_genomes]
-	; String.concat ~sep:"\t" ["core"; Int64.to_string core_bp]
-	; String.concat ~sep:"\t" ["total"; Int64.to_string total_bp]
+	; String.concat ~sep:"\t" ["core"; Int64.to_string core_cols]
+	; String.concat ~sep:"\t" ["shortest_genome_len"; Int64.to_string min_genome_size]
 	])
