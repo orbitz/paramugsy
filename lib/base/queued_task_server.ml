@@ -59,7 +59,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
 	Deferred.return {t with running = t.running + 1}
       end
       else begin
-	ignore (Heap.push t.queue (p, n, q, script, ret));
+	ignore (Heap.add t.queue (p, n, q, script, ret));
 	Deferred.return t
       end
     end
@@ -91,7 +91,7 @@ module Make = functor (Sts : SCRIPT_TASK_SERVER) -> struct
     let t = { sts      = Sts.start ()
 	    ; run_size = run_size
 	    ; running  = 0
-	    ; queue    = Heap.create task_compare
+	    ; queue    = Heap.create task_compare ()
 	    ; mq       = Tail.create ()
 	    }
     in
