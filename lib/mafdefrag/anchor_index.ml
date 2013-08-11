@@ -6,7 +6,7 @@ type t = { genome      : int String.Map.t
 	 ; anchors     : Anchor.t Array.t
 	 }
 
-type string_map_key = String.Map.Key.t Map.key
+type string_map_key = String.Map.Key.t
 
 let add_index s idx =
   match Map.find idx s with
