@@ -2,7 +2,7 @@ open Core.Std
 
 type t
 
-type string_map_key = String.Map.Key.t Map.key
+type string_map_key = String.Map.Key.t
 
 val build : Anchor.t Array.t -> t
 
