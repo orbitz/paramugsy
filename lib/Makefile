@@ -34,7 +34,7 @@ test: $(subdirs_test)
 
 clean: $(subdirs_clean) ocaml_bio_clean seq_clean
 
-base: ocaml_bio/META seq/META base/.d
+base: ocaml_bio/META seq/META
 
 mugsy: ocaml_bio/META seq/META
 
