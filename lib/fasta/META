@@ -1,0 +1,6 @@
+name="fasta"
+version="0.0.1"
+description="Library for manipulating fasta files"
+requires="core"
+archive(byte)="fasta.cma"
+archive(native)="fasta.cmxa"

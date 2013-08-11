@@ -1,8 +1,8 @@
 CAMLP4=
 OCAMLC_OPTS=-package core
-OCAMLOPT_OPTS=-for-pack Maf $(OCAMLC_OPTS)
+OCAMLOPT_OPTS=-for-pack Fasta $(OCAMLC_OPTS)
 
-cources=sequence.ml alignment.ml reader.ml writer.ml missing_seqs.ml
+cources=reader.ml
 
 sources=$(cources)
 
@@ -22,18 +22,18 @@ native-code: native
 
 byte-code: byte
 
-native: maf.cmxa
+native: fasta.cmxa
 
-maf.cmxa: maf.cmx
+fasta.cmxa: fasta.cmx
 
-maf.cmx: $(native_cmx)
+fasta.cmx: $(native_cmx)
 	ocamlfind ocamlopt -pack -o $@ $^
 
-byte: maf.cma
+byte: fasta.cma
 
-maf.cma: maf.cmo
+fasta.cma: fasta.cmo
 
-maf.cmo: $(byte_cmo)
+fasta.cmo: $(byte_cmo)
 	ocamlfind ocamlc -pack -o $@ $^
 
 clean:
