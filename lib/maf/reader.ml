@@ -1,4 +1,9 @@
+module Sequence_bak = Sequence
+
 open Core.Std
+
+(* Fix this injustice *)
+module Sequence = Sequence_bak
 
 type t = In_channel.t
 

@@ -1,4 +1,9 @@
+module Sequence_bak = Sequence
+
 open Core.Std
+
+(* Fix this injustice *)
+module Sequence = Sequence_bak
 
 type genomes = { genomes       : Int64.t String.Map.t
 	       ; genome_ranges : (Int64.t * Int64.t) list String.Map.t

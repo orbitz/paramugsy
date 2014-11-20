@@ -1,8 +1,7 @@
+open Core.Std
 open Core_extended.Std
 open Ort
 open Ort.Function
-
-module Option_monad = Core.Monad.Make(Core.Option)
 
 type profile_name = (string * string)
 
@@ -224,16 +223,15 @@ let subset_profile p (s, e) =
 	    | _ ->
 	      seq_idx_of_profile_idx p e
 	in
-	(let open Option_monad in
+	(let open Option.Monad_infix in
 	     seq_s >>= (fun s_s ->
 	       seq_e >>= (fun s_e ->
-		 return
-		   { p with
-		     p_range = M_range.of_tuple (s_s, s_e);
-		     p_gaps = gaps;
-		     p_length = abs (s - e);
-		     p_seq_text = text
-		   })))
+                 Some { p with
+		   p_range = M_range.of_tuple (s_s, s_e);
+		   p_gaps = gaps;
+		   p_length = abs (s - e);
+		   p_seq_text = text
+		 })))
 	end
   else if s > p.p_length then
     raise (Profile_idx_out_of_range (s, p.p_length))

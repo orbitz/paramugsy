@@ -1,4 +1,9 @@
+module Sequence_bak = Sequence
+
 open Core.Std
+
+(* Fix this injustice *)
+module Sequence = Sequence_bak
 
 module Score = struct
   type t = string
